@@ -10,7 +10,9 @@ if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true)
 // Obtener la casa seleccionada (por defecto Ravenclaw)
 $house = $_GET['house'] ?? $_SESSION['selected_house'] ?? 'ravenclaw';
 $validHouses = ['ravenclaw', 'gryffindor', 'slytherin', 'hufflepuff'];
-if (!in_array($house, $validHouses)) $house = 'ravenclaw';
+if (!in_array($house, $validHouses, true)) {
+    $house = 'ravenclaw';
+}
 
 // Guardar la casa en sesión
 $_SESSION['selected_house'] = $house;
@@ -19,7 +21,7 @@ $_SESSION['selected_house'] = $house;
 $houses_config = [
     'ravenclaw' => [
         'name' => 'Ravenclaw',
-        'emoji' => '🦅',
+        'icon' => 'fa-feather-alt',
         'logo_img' => 'assets/img/ravenclaw.jpg',
         'color' => '#0e1a2b',
         'secondary' => '#5f7f9e',
@@ -28,30 +30,30 @@ $houses_config = [
     ],
     'gryffindor' => [
         'name' => 'Gryffindor',
-        'emoji' => '🦁',
+        'icon' => 'fa-shield-alt',
         'logo_img' => 'assets/img/gryffindor.jpg',
         'color' => '#541011',
-        'secondary' => '#5c0000',
+        'secondary' => '#7a1d1f',
         'highlight' => '#eeba30',
         'text_color' => '#ffffff'
     ],
     'slytherin' => [
         'name' => 'Slytherin',
-        'emoji' => '🐍',
+        'icon' => 'fa-dragon',
         'logo_img' => 'assets/img/slytherin.jpg',
         'color' => '#1a472a',
         'secondary' => '#2a623d',
-        'highlight' => '#aaaaaa',
+        'highlight' => '#c8c8c8',
         'text_color' => '#ffffff'
     ],
     'hufflepuff' => [
         'name' => 'Hufflepuff',
-        'emoji' => '🦡',
+        'icon' => 'fa-seedling',
         'logo_img' => 'assets/img/hufflepuff.jpg',
         'color' => '#806216',
-        'secondary' => '#8d7331',
-        'highlight' => '#372e29',
-        'text_color' => '#1a1a1a'
+        'secondary' => '#9a7923',
+        'highlight' => '#f0c75e',
+        'text_color' => '#ffffff'
     ]
 ];
 
@@ -64,91 +66,81 @@ $user_email = $_SESSION['user_email'] ?? '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $current_house['name']; ?> Libraries | Stream de libros mágicos</title>
-    <link rel="stylesheet" href="/Muggle/assets/css/style.css">
+    <title><?php echo htmlspecialchars($current_house['name']); ?> Libraries | Stream de libros mágicos</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
-        /* Estilos inline para colores sólidos de la casa seleccionada */
         .main-header {
             background-color: <?php echo $current_house['color']; ?> !important;
-            border-bottom: 3px solid <?php echo $current_house['highlight']; ?> !important;
+            border-bottom-color: <?php echo $current_house['highlight']; ?> !important;
         }
-        
+
         .nav-menu a:hover,
-        .nav-menu a.active {
+        .nav-menu a.active,
+        .view-all:hover,
+        .footer-col a:hover {
             color: <?php echo $current_house['highlight']; ?> !important;
         }
-        
-        .btn-primary {
+
+        .btn-primary,
+        .hero-badge,
+        .play-btn,
+        .active-house,
+        .books-carousel::-webkit-scrollbar-thumb,
+        .section-title::after {
             background-color: <?php echo $current_house['highlight']; ?> !important;
+        }
+
+        .btn-primary,
+        .hero-badge,
+        .play-btn,
+        .active-house {
             color: <?php echo $current_house['color']; ?> !important;
         }
-        
-        .btn-primary:hover {
+
+        .btn-primary:hover,
+        .category-card:hover,
+        .logout-btn:hover {
             background-color: <?php echo $current_house['secondary']; ?> !important;
             color: <?php echo $current_house['text_color']; ?> !important;
         }
-        
-        .btn-secondary {
-            border: 2px solid <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['highlight']; ?> !important;
-        }
-        
-        .btn-secondary:hover {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
-        }
-        
-        .hero-badge {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
-        }
-        
-        .category-card {
-            background-color: <?php echo $current_house['color']; ?> !important;
-        }
-        
-        .category-card:hover {
-            background-color: <?php echo $current_house['secondary']; ?> !important;
-        }
-        
-        .play-btn {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
-        }
-        
+
+        .btn-secondary,
         .house-btn {
-            border: 2px solid <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['text_color']; ?> !important;
+            border-color: <?php echo $current_house['highlight']; ?> !important;
+            color: <?php echo $current_house['highlight']; ?> !important;
         }
-        
+
+        .btn-secondary:hover,
         .house-btn:hover {
             background-color: <?php echo $current_house['highlight']; ?> !important;
             color: <?php echo $current_house['color']; ?> !important;
         }
-        
-        .logout-btn:hover {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
+
+        .category-card {
+            background-color: <?php echo $current_house['color']; ?> !important;
         }
-        
-        .section-title::after {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
+
+        .hero {
+            background-color: <?php echo $current_house['color']; ?> !important;
+            border-bottom: 1px solid <?php echo $current_house['highlight']; ?> !important;
         }
     </style>
 </head>
-<body class="theme-<?php echo $house; ?>">
+<body class="theme-<?php echo htmlspecialchars($house); ?>">
 
 <header class="main-header">
     <div class="container header-content">
         <div class="logo">
             <div class="row">
-                <!-- Logo que cambia según la casa seleccionada -->
-                <img src="<?php echo $current_house['logo_img']; ?>" alt="<?php echo $current_house['name']; ?> Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                <div class="logo-icon" style="display: none;"><?php echo $current_house['emoji']; ?></div>
-                <h1><?php echo strtoupper($current_house['name']); ?> LIBRARIES</h1>
+                <img src="<?php echo htmlspecialchars($current_house['logo_img']); ?>" alt="Logo de <?php echo htmlspecialchars($current_house['name']); ?>" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fa-fallback" style="display: none;">
+                    <i class="fas <?php echo htmlspecialchars($current_house['icon']); ?>"></i>
+                </div>
+                <h1><?php echo strtoupper(htmlspecialchars($current_house['name'])); ?> LIBRARIES</h1>
             </div>
         </div>
-        
+
         <nav class="nav-menu">
             <ul>
                 <li><a href="#" class="active">Inicio</a></li>
@@ -157,8 +149,8 @@ $user_email = $_SESSION['user_email'] ?? '';
                 <li><a href="#">Categorías</a></li>
                 <li class="user-nav-item">
                     <div class="user-menu">
-                        <span class="user-name">👤 <?php echo htmlspecialchars($user_name); ?></span>
-                        <a href="logout.php" class="logout-btn">Cerrar sesión</a>
+                        <span class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></span>
+                        <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
                     </div>
                 </li>
             </ul>
@@ -170,13 +162,13 @@ $user_email = $_SESSION['user_email'] ?? '';
     <!-- HERO -->
     <section class="hero">
         <div class="container hero-content">
-            <span class="hero-badge">🔥 RECOMENDACIÓN DEL DÍA · CASA <?php echo strtoupper($current_house['name']); ?></span>
+            <span class="hero-badge"><i class="fas fa-fire"></i> RECOMENDACIÓN DEL DÍA · CASA <?php echo strtoupper(htmlspecialchars($current_house['name'])); ?></span>
             <h1 class="hero-title">Crimen y Castigo</h1>
             <p class="hero-description">Fiódor Dostoyevski · Crimen · Psicología · Clásico</p>
             <p class="hero-synopsis">Raskolnikov, un joven estudiante, planea y comete un asesinato para probar su teoría sobre hombres extraordinarios...</p>
             <div class="hero-buttons">
-                <a href="#" class="btn btn-primary">▶ LEER AHORA</a>
-                <a href="#" class="btn btn-secondary">➕ MI LISTA</a>
+                <a href="#" class="btn btn-primary"><i class="fas fa-book-reader"></i> LEER AHORA</a>
+                <a href="#" class="btn btn-secondary"><i class="fas fa-plus"></i> MI LISTA</a>
             </div>
         </div>
     </section>
@@ -185,16 +177,16 @@ $user_email = $_SESSION['user_email'] ?? '';
     <section class="row-section">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">🔥 Tendencias ahora mismo</h2>
-                <a href="#" class="view-all">Ver todo ›</a>
+                <h2 class="section-title"><i class="fas fa-fire"></i> Tendencias ahora mismo</h2>
+                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
             </div>
             <div class="books-carousel">
                 <div class="book-card">
                     <div class="book-cover">
-                        <div class="book-rating">⭐ 4.8</div>
+                        <div class="book-rating"><i class="fas fa-star"></i> 4.8</div>
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=1984" alt="1984" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer 1984"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -204,10 +196,10 @@ $user_email = $_SESSION['user_email'] ?? '';
                 </div>
                 <div class="book-card">
                     <div class="book-cover">
-                        <div class="book-rating">⭐ 4.9</div>
+                        <div class="book-rating"><i class="fas fa-star"></i> 4.9</div>
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Cien+años+de+soledad" alt="Cien años de soledad" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Cien años de soledad"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -217,10 +209,10 @@ $user_email = $_SESSION['user_email'] ?? '';
                 </div>
                 <div class="book-card">
                     <div class="book-cover">
-                        <div class="book-rating">⭐ 4.7</div>
+                        <div class="book-rating"><i class="fas fa-star"></i> 4.7</div>
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+principito" alt="El principito" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer El principito"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -230,10 +222,10 @@ $user_email = $_SESSION['user_email'] ?? '';
                 </div>
                 <div class="book-card">
                     <div class="book-cover">
-                        <div class="book-rating">⭐ 4.6</div>
+                        <div class="book-rating"><i class="fas fa-star"></i> 4.6</div>
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Orgullo+y+prejuicio" alt="Orgullo y prejuicio" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Orgullo y prejuicio"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -243,10 +235,10 @@ $user_email = $_SESSION['user_email'] ?? '';
                 </div>
                 <div class="book-card">
                     <div class="book-cover">
-                        <div class="book-rating">⭐ 4.9</div>
+                        <div class="book-rating"><i class="fas fa-star"></i> 4.9</div>
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Don+Quijote" alt="Don Quijote" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Don Quijote"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -262,15 +254,15 @@ $user_email = $_SESSION['user_email'] ?? '';
     <section class="row-section">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">📖 Recomendados para ti</h2>
-                <a href="#" class="view-all">Ver todo ›</a>
+                <h2 class="section-title"><i class="fas fa-bookmark"></i> Recomendados para ti</h2>
+                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
             </div>
             <div class="books-carousel">
                 <div class="book-card">
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Hamlet" alt="Hamlet" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Hamlet"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -282,7 +274,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=La+metamorfosis" alt="La metamorfosis" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer La metamorfosis"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -294,7 +286,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Moby+Dick" alt="Moby Dick" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Moby Dick"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -306,7 +298,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+gran+Gatsby" alt="El gran Gatsby" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer El gran Gatsby"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -318,7 +310,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Rayuela" alt="Rayuela" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Rayuela"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -334,15 +326,15 @@ $user_email = $_SESSION['user_email'] ?? '';
     <section class="row-section">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title">🏆 Clásicos imperdibles</h2>
-                <a href="#" class="view-all">Ver todo ›</a>
+                <h2 class="section-title"><i class="fas fa-award"></i> Clásicos imperdibles</h2>
+                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
             </div>
             <div class="books-carousel">
                 <div class="book-card">
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=La+divina+comedia" alt="La divina comedia" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer La divina comedia"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -354,7 +346,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Frankenstein" alt="Frankenstein" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Frankenstein"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -366,7 +358,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Drácula" alt="Drácula" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Drácula"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -378,7 +370,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+retrato+de+Dorian+Gray" alt="El retrato de Dorian Gray" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer El retrato de Dorian Gray"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -390,7 +382,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                     <div class="book-cover">
                         <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Crimen+y+castigo" alt="Crimen y castigo" class="cover-img">
                         <div class="book-overlay">
-                            <a href="#" class="play-btn">▶</a>
+                            <a href="#" class="play-btn" aria-label="Leer Crimen y castigo"><i class="fas fa-book-open"></i></a>
                         </div>
                     </div>
                     <div class="book-info">
@@ -405,34 +397,34 @@ $user_email = $_SESSION['user_email'] ?? '';
     <!-- SECCIÓN CATEGORÍAS -->
     <section class="categories-section">
         <div class="container">
-            <h2 class="section-title">📚 Explora por categorías</h2>
+            <h2 class="section-title"><i class="fas fa-layer-group"></i> Explora por categorías</h2>
             <div class="categories-grid">
-                <div class="category-card">🎭 Clásicos</div>
-                <div class="category-card">🔮 Ciencia ficción</div>
-                <div class="category-card">🕵️ Misterio</div>
-                <div class="category-card">💕 Romance</div>
-                <div class="category-card">🧛 Terror</div>
-                <div class="category-card">📖 Filosofía</div>
+                <div class="category-card"><i class="fas fa-landmark category-icon"></i> Clásicos</div>
+                <div class="category-card"><i class="fas fa-rocket category-icon"></i> Ciencia ficción</div>
+                <div class="category-card"><i class="fas fa-search category-icon"></i> Misterio</div>
+                <div class="category-card"><i class="fas fa-heart category-icon"></i> Romance</div>
+                <div class="category-card"><i class="fas fa-moon category-icon"></i> Terror</div>
+                <div class="category-card"><i class="fas fa-brain category-icon"></i> Filosofía</div>
             </div>
         </div>
     </section>
 
-    <!-- SELECTOR DE CASAS (abajo, como pediste) -->
+    <!-- SELECTOR DE CASAS -->
     <section class="house-selector-section">
         <div class="container">
-            <h2 class="section-title">🏰 Cambiar casa de Hogwarts</h2>
+            <h2 class="section-title"><i class="fas fa-university"></i> Cambiar casa de Hogwarts</h2>
             <div class="house-buttons">
-                <a href="?house=ravenclaw" class="house-btn <?php echo $house == 'ravenclaw' ? 'active-house' : ''; ?>">
-                    🦅 Ravenclaw
+                <a href="?house=ravenclaw" class="house-btn <?php echo $house === 'ravenclaw' ? 'active-house' : ''; ?>">
+                    <i class="fas fa-feather-alt"></i> Ravenclaw
                 </a>
-                <a href="?house=gryffindor" class="house-btn <?php echo $house == 'gryffindor' ? 'active-house' : ''; ?>">
-                    🦁 Gryffindor
+                <a href="?house=gryffindor" class="house-btn <?php echo $house === 'gryffindor' ? 'active-house' : ''; ?>">
+                    <i class="fas fa-shield-alt"></i> Gryffindor
                 </a>
-                <a href="?house=slytherin" class="house-btn <?php echo $house == 'slytherin' ? 'active-house' : ''; ?>">
-                    🐍 Slytherin
+                <a href="?house=slytherin" class="house-btn <?php echo $house === 'slytherin' ? 'active-house' : ''; ?>">
+                    <i class="fas fa-dragon"></i> Slytherin
                 </a>
-                <a href="?house=hufflepuff" class="house-btn <?php echo $house == 'hufflepuff' ? 'active-house' : ''; ?>">
-                    🦡 Hufflepuff
+                <a href="?house=hufflepuff" class="house-btn <?php echo $house === 'hufflepuff' ? 'active-house' : ''; ?>">
+                    <i class="fas fa-seedling"></i> Hufflepuff
                 </a>
             </div>
         </div>
@@ -443,7 +435,7 @@ $user_email = $_SESSION['user_email'] ?? '';
     <div class="container">
         <div class="footer-content">
             <div class="footer-col">
-                <h4>📚 <?php echo $current_house['name']; ?> Libraries</h4>
+                <h4><i class="fas <?php echo htmlspecialchars($current_house['icon']); ?>"></i> <?php echo htmlspecialchars($current_house['name']); ?> Libraries</h4>
                 <p>Streaming de libros gratuito.<br>Miles de títulos a un clic.</p>
             </div>
             <div class="footer-col">
@@ -464,7 +456,7 @@ $user_email = $_SESSION['user_email'] ?? '';
             </div>
         </div>
         <div class="copyright">
-            <p>© <?php echo date('Y'); ?> <?php echo $current_house['name']; ?> Libraries · Casa <?php echo $current_house['name']; ?> 🏰</p>
+            <p>© <?php echo date('Y'); ?> <?php echo htmlspecialchars($current_house['name']); ?> Libraries · Casa <?php echo htmlspecialchars($current_house['name']); ?></p>
         </div>
     </div>
 </footer>
