@@ -73,10 +73,10 @@ $google_redirect_uri = "http://localhost/hogwarts-libraries/login.php";
             </div>
         </div>
 
-        <div class="login-footer">
+        <!-- <div class="login-footer">
             <p>Al iniciar sesión aceptas nuestros <a href="#">Términos</a> y <a href="#">Política de privacidad</a></p>
             <div class="house-badge">🦅 🦁 🐍 🦡</div>
-        </div>
+        </div> -->
     </div>
 </div>
 
@@ -91,6 +91,7 @@ if (isset($_POST['manual_login'])) {
         $_SESSION['user_logged_in'] = true;
         $_SESSION['user_email'] = $email;
         $_SESSION['user_name'] = "Usuario Demo";
+        $_SESSION['user_role'] = 'admin';
         $_SESSION['user_picture'] = null;
         header('Location: index.php');
         exit();
@@ -107,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
     $_SESSION['user_logged_in'] = true;
     $_SESSION['user_email'] = "google_user@example.com";
     $_SESSION['user_name'] = "Usuario Google";
+    $_SESSION['user_role'] = 'admin';
     $_SESSION['user_picture'] = null;
     header('Location: index.php');
     exit();

@@ -7,7 +7,7 @@
 
 body {
     font-family: 'Netflix Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    background-color: #141414;
+    background-color: #000000;
     color: #ffffff;
     line-height: 1.5;
 }
@@ -20,7 +20,7 @@ body {
 
 /* ==================== HEADER ==================== */
 .main-header {
-    background-color: #0e1a2b;
+    background-color: #0a0a0a;
     position: sticky;
     top: 0;
     z-index: 1000;
@@ -83,7 +83,7 @@ body {
 
 .nav-menu a:hover,
 .nav-menu a.active {
-    color: #cdb57c;
+    color: #d9d9d9;
 }
 
 /* Menú usuario */
@@ -114,7 +114,7 @@ body {
 /* ==================== HERO ==================== */
 .hero {
     min-height: 85vh;
-    background: linear-gradient(90deg, #0e1a2b 0%, rgba(0,0,0,0.6) 70%, transparent 100%);
+    background: #111111;
     display: flex;
     align-items: center;
     margin-bottom: 2rem;
@@ -126,8 +126,8 @@ body {
 
 .hero-badge {
     display: inline-block;
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
     padding: 0.3rem 1rem;
     border-radius: 4px;
     font-size: 0.8rem;
@@ -172,25 +172,25 @@ body {
 }
 
 .btn-primary {
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 .btn-primary:hover {
-    background-color: #5f7f9e;
-    color: #ffffff;
+    background-color: #cfcfcf;
+    color: #000000;
     transform: scale(1.02);
 }
 
 .btn-secondary {
     background-color: transparent;
-    border: 2px solid #cdb57c;
-    color: #cdb57c;
+    border: 2px solid #ffffff;
+    color: #ffffff;
 }
 
 .btn-secondary:hover {
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
     transform: scale(1.02);
 }
 
@@ -220,7 +220,7 @@ body {
     left: 0;
     width: 60px;
     height: 3px;
-    background-color: #cdb57c;
+    background-color: #ffffff;
     border-radius: 2px;
 }
 
@@ -255,7 +255,7 @@ body {
 }
 
 .books-carousel::-webkit-scrollbar-thumb {
-    background-color: #cdb57c;
+    background-color: #8f8f8f;
     border-radius: 4px;
 }
 
@@ -317,13 +317,13 @@ body {
 .play-btn {
     width: 50px;
     height: 50px;
-    background-color: #cdb57c;
+    background-color: #ffffff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: #0e1a2b;
+    color: #000000;
     font-size: 1.5rem;
     transition: transform 0.3s;
 }
@@ -358,7 +358,7 @@ body {
 }
 
 .category-card {
-    background-color: #0e1a2b;
+    background-color: #111111;
     padding: 1.5rem;
     text-align: center;
     border-radius: 12px;
@@ -387,7 +387,7 @@ body {
 
 .house-btn {
     background: transparent;
-    border: 2px solid #cdb57c;
+    border: 2px solid #ffffff;
     color: #ffffff;
     padding: 0.8rem 1.5rem;
     border-radius: 40px;
@@ -400,14 +400,14 @@ body {
 }
 
 .house-btn:hover {
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
     transform: scale(1.05);
 }
 
 .active-house {
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
 }
 
 /* ==================== FOOTER ==================== */
