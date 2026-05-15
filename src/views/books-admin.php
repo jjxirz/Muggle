@@ -50,48 +50,11 @@ function normalizeBannerImageUrl(string $path): string
 
     return $path;
 }
+
+$activePage = 'catalogo';
+include __DIR__ . '/layouts/sidebar.php';
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Libros | Muggle</title>
-    <style>
-        :root {
-            --primary: #0f3d3e;
-            --secondary: #5c8374;
-            --accent: #ecd8a6;
-            --bg: #f6f4eb;
-            --danger: #b31312;
-            --success: #2d6a4f;
-            --text: #1f2937;
-            --card: #ffffff;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            background: radial-gradient(circle at top right, #d8e3d2, var(--bg));
-            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-            color: var(--text);
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            gap: 12px;
-        }
-        .header h1 {
-            margin: 0;
-            color: var(--primary);
-            letter-spacing: 1px;
-        }
+<style>
         .btn {
             border: 0;
             border-radius: 8px;
@@ -101,9 +64,9 @@ function normalizeBannerImageUrl(string $path): string
             text-decoration: none;
             display: inline-block;
         }
-        .btn-primary { background: var(--primary); color: #fff; }
-        .btn-secondary { background: var(--secondary); color: #fff; }
-        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-primary { background: #111110; color: #fff; }
+        .btn-secondary { background: #5F5E5A; color: #fff; }
+        .btn-danger { background: #E24B4A; color: #fff; }
 
         .grid {
             display: grid;
@@ -111,14 +74,14 @@ function normalizeBannerImageUrl(string $path): string
             gap: 18px;
         }
         .card {
-            background: var(--card);
+            background: #fff;
             border-radius: 12px;
             padding: 16px;
-            box-shadow: 0 8px 20px rgba(15, 61, 62, 0.08);
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
         }
         .card h2 {
             margin-top: 0;
-            color: var(--primary);
+            color: #111110;
         }
         .flash {
             margin-bottom: 12px;
@@ -126,8 +89,8 @@ function normalizeBannerImageUrl(string $path): string
             border-radius: 8px;
             font-weight: 700;
         }
-        .flash.success { background: #d8f3dc; color: var(--success); }
-        .flash.error { background: #ffccd5; color: var(--danger); }
+        .flash.success { background: #EAF3DE; color: #3B6D11; }
+        .flash.error { background: #FCEBEB; color: #A32D2D; }
 
         label {
             display: block;
@@ -190,7 +153,7 @@ function normalizeBannerImageUrl(string $path): string
         }
         .section-title {
             margin: 24px 0 12px;
-            color: var(--primary);
+            color: #111110;
         }
         .actions {
             display: flex;
@@ -207,17 +170,19 @@ function normalizeBannerImageUrl(string $path): string
         @media (max-width: 900px) {
             .grid { grid-template-columns: 1fr; }
         }
+        .admin-content {
+            padding-top: 18px;
+        }
     </style>
-</head>
-<body>
-<div class="container">
-    <div class="header">
-        <h1>Panel de Administracion de Libros</h1>
-        <div>
-            <a href="dashboard.php" class="btn btn-secondary">Volver al inicio</a>
-            <a href="/logout.php" class="btn btn-danger">Cerrar sesion</a>
-        </div>
+
+<div class="admin-topbar">
+    <div>
+        <h1 class="topbar-title">Panel de Administracion de Libros</h1>
+        <p class="topbar-sub">Gestion de catalogo, archivos y banners</p>
     </div>
+</div>
+
+<div class="admin-content">
 
     <?php if ($flash !== null): ?>
         <div class="flash <?= htmlspecialchars($flash['type']) ?>"><?= htmlspecialchars($flash['message']) ?></div>
@@ -528,5 +493,5 @@ titleInput.addEventListener('input', () => {
     }, 350);
 });
 </script>
-</body>
-</html>
+
+<?php include __DIR__ . '/layouts/footer.php'; ?>
