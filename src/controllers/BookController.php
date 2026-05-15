@@ -31,15 +31,21 @@ class BookController
         }
 
         $editingBook = null;
+        $editingBanner = null;
         $action = $_GET['action'] ?? 'index';
         if ($action === 'edit' && isset($_GET['id'])) {
             $editingBook = $this->bookModel->find((int) $_GET['id']);
+        }
+        if ($action === 'edit_banner' && isset($_GET['banner_id'])) {
+            $editingBanner = $this->bookModel->findBanner((int) $_GET['banner_id']);
         }
 
         return [
             'books' => $this->bookModel->all(),
             'categories' => $this->bookModel->categories(),
             'editingBook' => $editingBook,
+            'banners' => $this->bookModel->allBanners(),
+            'editingBanner' => $editingBanner,
             'flash' => $this->consumeFlash(),
             'existingPdfFiles' => $this->listExistingPdfFiles(),
         ];
@@ -111,10 +117,43 @@ class BookController
                 $this->redirectToAdmin();
             }
 
+            if ($action === 'create_banner') {
+                $this->attachUploadedBannerImage($payload);
+
+                if (empty($payload['imagen'])) {
+                    throw new RuntimeException('Debes subir una imagen para crear el banner.');
+                }
+
+                $this->bookModel->createBanner($payload);
+                $this->setFlash('Banner creado correctamente.', 'success');
+                $this->redirectToAdmin('#banners');
+            }
+
+            if ($action === 'update_banner' && isset($_POST['id_banner'])) {
+                $this->attachUploadedBannerImage($payload);
+
+                if (empty($payload['imagen'])) {
+                    $currentBanner = $this->bookModel->findBanner((int) $_POST['id_banner']);
+                    if ($currentBanner !== null) {
+                        $payload['imagen'] = $currentBanner['imagen'];
+                    }
+                }
+
+                $this->bookModel->updateBanner((int) $_POST['id_banner'], $payload);
+                $this->setFlash('Banner actualizado correctamente.', 'success');
+                $this->redirectToAdmin('#banners');
+            }
+
+            if ($action === 'delete_banner' && isset($_POST['id_banner'])) {
+                $this->bookModel->deleteBanner((int) $_POST['id_banner']);
+                $this->setFlash('Banner eliminado correctamente.', 'success');
+                $this->redirectToAdmin('#banners');
+            }
+
             $this->setFlash('Accion no valida.', 'error');
             $this->redirectToAdmin();
         } catch (Throwable $exception) {
-            $this->setFlash('Error al guardar el libro: ' . $exception->getMessage(), 'error');
+            $this->setFlash('Error al procesar la solicitud: ' . $exception->getMessage(), 'error');
             $this->redirectToAdmin();
         }
     }
@@ -169,9 +208,7 @@ class BookController
         }
 
         $destinationDir = __DIR__ . '/../../assets/books';
-        if (!is_dir($destinationDir) && !mkdir($destinationDir, 0775, true) && !is_dir($destinationDir)) {
-            throw new RuntimeException('No fue posible crear la carpeta de libros.');
-        }
+        $this->ensureWritableDirectory($destinationDir, 'libros');
 
         $safeBase = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($originalName, PATHINFO_FILENAME));
         $safeBase = trim((string) $safeBase, '_');
@@ -182,9 +219,7 @@ class BookController
         $fileName = $safeBase . '_' . date('Ymd_His') . '.pdf';
         $destinationPath = $destinationDir . '/' . $fileName;
 
-        if (!move_uploaded_file($tmpName, $destinationPath)) {
-            throw new RuntimeException('No se pudo mover el PDF al proyecto.');
-        }
+        $this->storeUploadedFile($tmpName, $destinationPath, 'el PDF');
 
         $payload['archivo'] = 'assets/books/' . $fileName;
     }
@@ -210,12 +245,98 @@ class BookController
         return $files;
     }
 
+    private function attachUploadedBannerImage(array &$payload): void
+    {
+        if (!isset($_FILES['banner_image']) || !is_array($_FILES['banner_image'])) {
+            return;
+        }
+
+        $file = $_FILES['banner_image'];
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            return;
+        }
+
+        $uploadError = $file['error'] ?? UPLOAD_ERR_OK;
+        if ($uploadError !== UPLOAD_ERR_OK) {
+            throw new RuntimeException('Error al subir la imagen del banner.');
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        $originalName = (string) ($file['name'] ?? 'banner.jpg');
+        if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+            throw new RuntimeException('Archivo temporal de banner invalido.');
+        }
+
+        $size = (int) ($file['size'] ?? 0);
+        if ($size <= 0 || $size > 20 * 1024 * 1024) {
+            throw new RuntimeException('La imagen del banner debe ser mayor a 0 bytes y menor a 20MB.');
+        }
+
+        $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+        if (!in_array($extension, $allowedExtensions, true)) {
+            throw new RuntimeException('Formato de imagen no permitido. Usa JPG, PNG, WEBP o GIF.');
+        }
+
+        $destinationDir = __DIR__ . '/../../assets/banners';
+        $this->ensureWritableDirectory($destinationDir, 'banners');
+
+        $safeBase = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($originalName, PATHINFO_FILENAME));
+        $safeBase = trim((string) $safeBase, '_');
+        if ($safeBase === '') {
+            $safeBase = 'banner';
+        }
+
+        $fileName = $safeBase . '_' . date('Ymd_His') . '.' . $extension;
+        $destinationPath = $destinationDir . '/' . $fileName;
+
+        $this->storeUploadedFile($tmpName, $destinationPath, 'la imagen del banner');
+
+        $payload['imagen'] = '/Muggle/assets/banners/' . $fileName;
+    }
+
     private function setFlash(string $message, string $type): void
     {
         $_SESSION['admin_books_flash'] = [
             'message' => $message,
             'type' => $type,
         ];
+    }
+
+    private function ensureWritableDirectory(string $destinationDir, string $label): void
+    {
+        if (!is_dir($destinationDir) && !mkdir($destinationDir, 0775, true) && !is_dir($destinationDir)) {
+            throw new RuntimeException("No fue posible crear la carpeta de {$label}: {$destinationDir}");
+        }
+
+        if (!is_writable($destinationDir)) {
+            @chmod($destinationDir, 0775);
+            clearstatcache(true, $destinationDir);
+        }
+
+        if (!is_writable($destinationDir)) {
+            throw new RuntimeException("La carpeta de {$label} no tiene permisos de escritura: {$destinationDir}");
+        }
+    }
+
+    private function storeUploadedFile(string $tmpName, string $destinationPath, string $label): void
+    {
+        if (move_uploaded_file($tmpName, $destinationPath)) {
+            return;
+        }
+
+        if (is_readable($tmpName) && @copy($tmpName, $destinationPath)) {
+            @unlink($tmpName);
+            return;
+        }
+
+        $lastError = error_get_last();
+        $errorDetail = '';
+        if (is_array($lastError) && isset($lastError['message'])) {
+            $errorDetail = ' Detalle del sistema: ' . $lastError['message'];
+        }
+
+        throw new RuntimeException("No se pudo guardar {$label} en {$destinationPath}. Revisa permisos de carpeta, espacio en disco y restriccion open_basedir." . $errorDetail);
     }
 
     private function consumeFlash(): ?array
@@ -229,9 +350,9 @@ class BookController
         return $flash;
     }
 
-    private function redirectToAdmin(): void
+    private function redirectToAdmin(string $suffix = ''): void
     {
-        header('Location: admin_books.php');
+        header('Location: admin_books.php' . $suffix);
         exit();
     }
 }

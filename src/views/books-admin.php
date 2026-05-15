@@ -13,10 +13,43 @@ $book = $editingBook ?? [
     'archivo' => '',
     'tipo' => 'digital',
     'id_categoria' => 1,
+    'id_banner' => null,
     'fecha_publicado' => '',
 ];
 $existingPdfFiles = $existingPdfFiles ?? [];
 $isEditing = $book['id_libro'] !== null;
+$banners = $banners ?? [];
+$banner = $editingBanner ?? [
+    'id_banner' => null,
+    'imagen' => '',
+];
+$isEditingBanner = $banner['id_banner'] !== null;
+
+function normalizeBannerImageUrl(string $path): string
+{
+    $path = trim($path);
+    if ($path === '') {
+        return '';
+    }
+
+    if (preg_match('/^(https?:)?\/\//i', $path) === 1) {
+        return $path;
+    }
+
+    if (strpos($path, '/Muggle/') === 0) {
+        return $path;
+    }
+
+    if (strpos($path, '/assets/') === 0) {
+        return '/Muggle' . $path;
+    }
+
+    if (strpos($path, 'assets/') === 0) {
+        return '/Muggle/' . $path;
+    }
+
+    return $path;
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -138,6 +171,27 @@ $isEditing = $book['id_libro'] !== null;
             border-radius: 4px;
             background: #eee;
         }
+        .banner-thumb {
+            width: 90px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+            background: #eee;
+            border: 1px solid #e5e7eb;
+        }
+        .banner-cover {
+            width: 100%;
+            max-width: 260px;
+            height: 110px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #eee;
+            border: 1px solid #e5e7eb;
+        }
+        .section-title {
+            margin: 24px 0 12px;
+            color: var(--primary);
+        }
         .actions {
             display: flex;
             gap: 8px;
@@ -160,8 +214,8 @@ $isEditing = $book['id_libro'] !== null;
     <div class="header">
         <h1>Panel de Administracion de Libros</h1>
         <div>
-            <a href="index.php" class="btn btn-secondary">Volver al inicio</a>
-            <a href="logout.php" class="btn btn-danger">Cerrar sesion</a>
+            <a href="dashboard.php" class="btn btn-secondary">Volver al inicio</a>
+            <a href="/logout.php" class="btn btn-danger">Cerrar sesion</a>
         </div>
     </div>
 
@@ -242,6 +296,16 @@ $isEditing = $book['id_libro'] !== null;
                     <?php endforeach; ?>
                 </select>
 
+                <label for="id_banner">Banner asociado</label>
+                <select id="id_banner" name="id_banner">
+                    <option value="">-- Sin banner --</option>
+                    <?php foreach ($banners as $bannerOption): ?>
+                        <option value="<?= (int) $bannerOption['id_banner'] ?>" <?= (int) ($book['id_banner'] ?? 0) === (int) $bannerOption['id_banner'] ? 'selected' : '' ?>>
+                            Banner #<?= (int) $bannerOption['id_banner'] ?> - <?= htmlspecialchars((string) $bannerOption['imagen']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
                 <label for="fecha_publicado">Fecha publicado</label>
                 <input type="date" id="fecha_publicado" name="fecha_publicado" value="<?= htmlspecialchars((string) $book['fecha_publicado']) ?>">
 
@@ -265,6 +329,7 @@ $isEditing = $book['id_libro'] !== null;
                             <tr>
                                 <th>ID</th>
                                 <th>Portada</th>
+                                <th>Banner</th>
                                 <th>Titulo</th>
                                 <th>Autor</th>
                                 <th>Tipo</th>
@@ -281,6 +346,11 @@ $isEditing = $book['id_libro'] !== null;
                                         <img src="<?= htmlspecialchars($row['portada']) ?>" alt="Portada" class="cover">
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <?php if (!empty($row['banner_imagen'])): ?>
+                                        <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $row['banner_imagen'])) ?>" alt="Banner" class="banner-thumb">
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= htmlspecialchars($row['titulo']) ?></td>
                                 <td><?= htmlspecialchars($row['autor']) ?></td>
                                 <td><?= htmlspecialchars($row['tipo']) ?></td>
@@ -291,6 +361,76 @@ $isEditing = $book['id_libro'] !== null;
                                         <form method="POST" action="admin_books.php" onsubmit="return confirm('¿Seguro que quieres eliminar este libro?');">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= (int) $row['id_libro'] ?>">
+                                            <button class="btn btn-danger" type="submit">Eliminar</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <h2 class="section-title" id="banners">Gestion de banners</h2>
+    <div class="grid" style="grid-template-columns: 1fr 1.4fr;">
+        <div class="card">
+            <h2><?= $isEditingBanner ? 'Editar banner' : 'Nuevo banner' ?></h2>
+            <form method="POST" action="admin_books.php#banners" enctype="multipart/form-data">
+                <input type="hidden" name="action" value="<?= $isEditingBanner ? 'update_banner' : 'create_banner' ?>">
+                <?php if ($isEditingBanner): ?>
+                    <input type="hidden" name="id_banner" value="<?= (int) $banner['id_banner'] ?>">
+                <?php endif; ?>
+
+                <label for="banner_image">Imagen de banner (max 20MB) *</label>
+                <input type="file" id="banner_image" name="banner_image" accept="image/*">
+
+                <?php if ($isEditingBanner && !empty($banner['imagen'])): ?>
+                    <label>Imagen actual</label>
+                    <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $banner['imagen'])) ?>" alt="Banner actual" class="banner-cover">
+                    <input type="hidden" name="imagen" value="<?= htmlspecialchars(normalizeBannerImageUrl((string) $banner['imagen'])) ?>">
+                <?php endif; ?>
+
+                <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" type="submit"><?= $isEditingBanner ? 'Guardar banner' : 'Crear banner' ?></button>
+                    <?php if ($isEditingBanner): ?>
+                        <a href="admin_books.php#banners" class="btn btn-secondary">Cancelar</a>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>Listado de banners</h2>
+            <?php if (count($banners) === 0): ?>
+                <div class="empty">No hay banners cargados todavia.</div>
+            <?php else: ?>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Imagen</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($banners as $row): ?>
+                            <tr>
+                                <td><?= (int) $row['id_banner'] ?></td>
+                                <td>
+                                    <?php if (!empty($row['imagen'])): ?>
+                                        <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $row['imagen'])) ?>" alt="Banner" class="banner-cover">
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div class="actions">
+                                        <a class="btn btn-secondary" href="admin_books.php?action=edit_banner&banner_id=<?= (int) $row['id_banner'] ?>#banners">Editar</a>
+                                        <form method="POST" action="admin_books.php#banners" onsubmit="return confirm('¿Seguro que quieres eliminar este banner?');">
+                                            <input type="hidden" name="action" value="delete_banner">
+                                            <input type="hidden" name="id_banner" value="<?= (int) $row['id_banner'] ?>">
                                             <button class="btn btn-danger" type="submit">Eliminar</button>
                                         </form>
                                     </div>

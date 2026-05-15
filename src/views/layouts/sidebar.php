@@ -12,7 +12,7 @@ if (!isset($activePage)) $activePage = '';
     <!-- Bootstrap 4 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="../../assets/css/admin.css">
+    <link rel="stylesheet" href="/Muggle/assets/css/admin.css">
 </head>
 <body>
 
@@ -53,6 +53,11 @@ if (!isset($activePage)) $activePage = '';
                class="sidebar-item <?= $activePage === 'reportes' ? 'active' : '' ?>">
                 <i class="fas fa-chart-bar"></i>
                 <span>Reportes</span>
+            </a>
+           <a href="../admin/admin_books.php"
+               class="sidebar-item <?= $activePage === 'admin_books' ? 'active' : '' ?>">
+                <i class="fas fa-book"></i>
+                <span>Administrar Libros</span>
             </a>
             <!--<a href="../admin/logs.php"
                class="sidebar-item <?= $activePage === 'logs' ? 'active' : '' ?>">
