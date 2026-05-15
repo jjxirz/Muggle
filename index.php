@@ -20,7 +20,7 @@ $houses_config = [
     'ravenclaw' => [
         'name' => 'Ravenclaw',
         'emoji' => '🦅',
-        'logo_img' => 'assets/img/ravenclaw.jpg',
+        'logo_img' => 'assets/img/Ravenclaw.jpg',
         'color' => '#0e1a2b',
         'secondary' => '#5f7f9e',
         'highlight' => '#cdb57c',
@@ -29,7 +29,7 @@ $houses_config = [
     'gryffindor' => [
         'name' => 'Gryffindor',
         'emoji' => '🦁',
-        'logo_img' => 'assets/img/gryffindor.jpg',
+        'logo_img' => 'assets/img/Gryffindor.jpg',
         'color' => '#541011',
         'secondary' => '#5c0000',
         'highlight' => '#eeba30',
@@ -38,7 +38,7 @@ $houses_config = [
     'slytherin' => [
         'name' => 'Slytherin',
         'emoji' => '🐍',
-        'logo_img' => 'assets/img/slytherin.jpg',
+        'logo_img' => 'assets/img/Slytherin.jpg',
         'color' => '#1a472a',
         'secondary' => '#2a623d',
         'highlight' => '#aaaaaa',
@@ -47,7 +47,7 @@ $houses_config = [
     'hufflepuff' => [
         'name' => 'Hufflepuff',
         'emoji' => '🦡',
-        'logo_img' => 'assets/img/hufflepuff.jpg',
+        'logo_img' => 'assets/img/Hufflepuff.jpg',
         'color' => '#806216',
         'secondary' => '#8d7331',
         'highlight' => '#372e29',
@@ -145,7 +145,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                 <!-- Logo que cambia según la casa seleccionada -->
                 <img src="<?php echo $current_house['logo_img']; ?>" alt="<?php echo $current_house['name']; ?> Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
                 <div class="logo-icon" style="display: none;"><?php echo $current_house['emoji']; ?></div>
-                <h1><?php echo strtoupper($current_house['name']); ?> LIBRARIES</h1>
+                <h1><?php echo strtoupper($current_house['name']); ?> LIBRERÍA</h1>
             </div>
         </div>
         
@@ -155,6 +155,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                 <li><a href="#">Explorar</a></li>
                 <li><a href="#">Mi lista</a></li>
                 <li><a href="#">Categorías</a></li>
+                <li><a href="admin_books.php">Admin</a></li>
                 <li class="user-nav-item">
                     <div class="user-menu">
                         <span class="user-name">👤 <?php echo htmlspecialchars($user_name); ?></span>

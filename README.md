@@ -1,2 +1,3 @@
-# Muggle
-Basic PHP project for an online library with Google registration and different types of membership payments.
+Usuario app: muggle_user
+Password app: 6D1bQej9D8XUyvpNC5AJ
+Password root MariaDB: FcWQkApgwVJ3eNpFu9KC
