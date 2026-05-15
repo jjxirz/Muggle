@@ -12,9 +12,9 @@ class Database
 
         $host = getenv('DB_HOST') ?: '127.0.0.1';
         $port = getenv('DB_PORT') ?: '3306';
-        $dbname = getenv('DB_NAME') ?: 'muggle';
-        $user = getenv('DB_USER') ?: 'muggle_user';
-        $pass = getenv('DB_PASS') ?: '6D1bQej9D8XUyvpNC5AJ';
+        $dbname = getenv('DB_NAME') ?: 'biblioteca_digital';
+        $user = getenv('DB_USER') ?: 'root';
+        $pass = getenv('DB_PASS') ?: '';
 
         $hostsToTry = array_unique([$host, '127.0.0.1', 'localhost']);
         $lastException = null;

@@ -11,7 +11,7 @@ if (isset($_SESSION['user_role']) && $_SESSION['user_role'] !== 'admin') {
     exit('Acceso denegado. Solo administradores.');
 }
 
-require_once __DIR__ . '/src/controllers/BookController.php';
+require_once __DIR__ . '/../../controllers/BookController.php';
 
 try {
     $controller = new BookController();
@@ -20,10 +20,12 @@ try {
     $books = $data['books'];
     $categories = $data['categories'];
     $editingBook = $data['editingBook'];
+    $banners = $data['banners'];
+    $editingBanner = $data['editingBanner'];
     $flash = $data['flash'];
     $existingPdfFiles = $data['existingPdfFiles'];
 
-    require __DIR__ . '/src/views/books-admin.php';
+    require __DIR__ . '/../books-admin.php';
 } catch (Throwable $exception) {
     http_response_code(500);
     $safeMessage = htmlspecialchars($exception->getMessage(), ENT_QUOTES, 'UTF-8');
@@ -47,22 +49,21 @@ try {
     <body>
         <div class="wrap">
             <h1>No se pudo abrir el panel de admin</h1>
-            <p>El sistema no pudo conectarse a la base de datos.</p>
+            <p>El sistema encontro un problema al cargar el modulo de administracion.</p>
             <p><strong>Detalle tecnico:</strong> <?php echo $safeMessage; ?></p>
 
             <div class="hint">
                 <p><strong>Como resolverlo:</strong></p>
-                <p>1. Crea un usuario MySQL para la app y dale permisos a tu base.</p>
-                <p>2. Define estas variables para Apache/PHP: <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASS</code>.</p>
-                <p>3. Reinicia el servidor web.</p>
+                <p>1. Verifica que exista la base <code>biblioteca_digital</code> y sus tablas requeridas.</p>
+                <p>2. Define las variables de entorno PHP/Apache: <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_NAME</code>, <code>DB_USER</code>, <code>DB_PASS</code>.</p>
+                <p>3. Ejecuta el schema del proyecto y reinicia el servidor web.</p>
             </div>
 
-            <pre>CREATE DATABASE IF NOT EXISTS muggle CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-CREATE USER IF NOT EXISTS 'muggle_user'@'localhost' IDENTIFIED BY 'muggle_pass';
-GRANT ALL PRIVILEGES ON muggle.* TO 'muggle_user'@'localhost';
-FLUSH PRIVILEGES;</pre>
+            <pre>CREATE DATABASE IF NOT EXISTS biblioteca_digital CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE biblioteca_digital;
+SOURCE db/script.sql;</pre>
 
-            <p>Si quieres volver al inicio: <a href="index.php">Ir a inicio</a></p>
+            <p>Si quieres volver al inicio: <a href="/index.php">Ir a inicio</a></p>
         </div>
     </body>
     </html>
