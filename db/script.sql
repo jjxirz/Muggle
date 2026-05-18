@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS libros (
     id_categoria INT NOT NULL,
     id_banner INT NULL,
     fecha_publicado DATE NULL,
+    UNIQUE KEY uq_libros_id_banner (id_banner),
     CONSTRAINT fk_libros_categoria
         FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
         ON UPDATE CASCADE
