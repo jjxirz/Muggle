@@ -122,17 +122,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
             </div>
         </div>
 
-        <div class="login-footer">
+        <!-- <div class="login-footer">
             <p>Al iniciar sesión aceptas nuestros <a href="#">Términos</a> y <a href="#">Política de privacidad</a></p>
-            <div class="house-badge" aria-label="Casas de Hogwarts">
-                <span><i class="fas fa-feather-alt"></i> Ravenclaw</span>
-                <span><i class="fas fa-shield-alt"></i> Gryffindor</span>
-                <span><i class="fas fa-dragon"></i> Slytherin</span>
-                <span><i class="fas fa-seedling"></i> Hufflepuff</span>
-            </div>
-        </div>
+            <div class="house-badge">🦅 🦁 🐍 🦡</div>
+        </div> -->
     </div>
 </div>
 
+<?php
+// Manejar login manual (demo)
+if (isset($_POST['manual_login'])) {
+    $email = $_POST['email'];
+    $password = $_POST['password'];
+    
+    // Demo: credenciales simples
+    if ($email === "a@gmail.com" && $password === "123") {
+        $_SESSION['user_logged_in'] = true;
+        $_SESSION['user_email'] = $email;
+        $_SESSION['user_name'] = "Usuario Demo";
+        $_SESSION['user_role'] = 'admin';
+        $_SESSION['user_picture'] = null;
+        header('Location: index.php');
+        exit();
+    } else {
+        echo "<script>alert('Credenciales incorrectas. Usa a@gmail.com / 123');</script>";
+    }
+}
+
+// Procesar respuesta de Google (POST desde el botón)
+// En producción, necesitas verificar el token con Google
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
+    // Aquí debes verificar el token JWT con la librería de Google
+    // Por simplicidad, simulamos login exitoso con Google
+    $_SESSION['user_logged_in'] = true;
+    $_SESSION['user_email'] = "google_user@example.com";
+    $_SESSION['user_name'] = "Usuario Google";
+    $_SESSION['user_role'] = 'admin';
+    $_SESSION['user_picture'] = null;
+    header('Location: index.php');
+    exit();
+}
+?>
 </body>
 </html>

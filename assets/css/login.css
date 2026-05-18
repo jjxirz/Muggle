@@ -3,16 +3,15 @@
 
 :root,
 .theme-ravenclaw {
-    --color-primary: #0e1a2b;
-    --color-secondary: #5f7f9e;
-    --color-highlight: #cdb57c;
+    --color-primary: #000000;
+    --color-secondary: #8a8a8a;
+    --color-highlight: #ffffff;
     --color-text-light: #ffffff;
-    --color-text-muted: #b7c0cc;
-    --color-bg-dark: #141414;
-    --color-card-bg: #181f2a;
-    --color-card-border: #2f3a4a;
-    --color-input-bg: #101722;
-    --color-error: #d64545;
+    --color-text-dark: #111111;
+    --color-bg-dark: #000000;
+    --color-card-bg: rgba(10, 10, 10, 0.95);
+    --color-error: #c7c7c7;
+    --color-success: #9f9f9f;
 }
 
 * {
@@ -23,7 +22,7 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
-    background-color: var(--color-bg-dark);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #2b2b2b 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -172,8 +171,8 @@ body {
 
 .input-group input:focus {
     outline: none;
-    border-color: var(--color-highlight);
-    background-color: #111c2b;
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .input-group input::placeholder {
@@ -184,9 +183,9 @@ body {
     width: 100%;
     padding: 1rem;
     background-color: var(--color-highlight);
-    border: 1px solid var(--color-highlight);
-    border-radius: 10px;
-    color: var(--color-primary);
+    border: none;
+    border-radius: 12px;
+    color: #000000;
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
@@ -195,9 +194,25 @@ body {
 }
 
 .btn-login:hover {
-    background-color: var(--color-secondary);
-    border-color: var(--color-secondary);
-    color: var(--color-text-light);
+    background-color: #cfcfcf;
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #000000;
+}
+
+.btn-login:active {
+    transform: scale(0.98);
+}
+
+/* Credenciales demo */
+.demo-credentials {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.5);
 }
 
 .btn-login i {
