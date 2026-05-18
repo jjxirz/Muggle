@@ -21,7 +21,7 @@ $_SESSION['selected_house'] = $house;
 $houses_config = [
     'ravenclaw' => [
         'name' => 'Ravenclaw',
-        'icon' => 'fa-feather-alt',
+        'emoji' => '🦅',
         'logo_img' => 'assets/img/ravenclaw.jpg',
         'color' => '#0e1a2b',
         'secondary' => '#5f7f9e',
@@ -30,7 +30,7 @@ $houses_config = [
     ],
     'gryffindor' => [
         'name' => 'Gryffindor',
-        'icon' => 'fa-shield-alt',
+        'emoji' => '🦁',
         'logo_img' => 'assets/img/gryffindor.jpg',
         'color' => '#541011',
         'secondary' => '#7a1d1f',
@@ -39,7 +39,7 @@ $houses_config = [
     ],
     'slytherin' => [
         'name' => 'Slytherin',
-        'icon' => 'fa-dragon',
+        'emoji' => '🐍',
         'logo_img' => 'assets/img/slytherin.jpg',
         'color' => '#1a472a',
         'secondary' => '#2a623d',
@@ -48,7 +48,7 @@ $houses_config = [
     ],
     'hufflepuff' => [
         'name' => 'Hufflepuff',
-        'icon' => 'fa-seedling',
+        'emoji' => '🦡',
         'logo_img' => 'assets/img/hufflepuff.jpg',
         'color' => '#806216',
         'secondary' => '#9a7923',
@@ -133,11 +133,10 @@ $user_email = $_SESSION['user_email'] ?? '';
     <div class="container header-content">
         <div class="logo">
             <div class="row">
-                <img src="<?php echo htmlspecialchars($current_house['logo_img']); ?>" alt="Logo de <?php echo htmlspecialchars($current_house['name']); ?>" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="logo-fa-fallback" style="display: none;">
-                    <i class="fas <?php echo htmlspecialchars($current_house['icon']); ?>"></i>
-                </div>
-                <h1><?php echo strtoupper(htmlspecialchars($current_house['name'])); ?> LIBRARIES</h1>
+                <!-- Logo que cambia según la casa seleccionada -->
+                <img src="<?php echo $current_house['logo_img']; ?>" alt="<?php echo $current_house['name']; ?> Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+                <div class="logo-icon" style="display: none;"><?php echo $current_house['emoji']; ?></div>
+                <h1><?php echo strtoupper($current_house['name']); ?> LIBRARIES</h1>
             </div>
         </div>
 
@@ -147,6 +146,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                 <li><a href="#">Explorar</a></li>
                 <li><a href="#">Mi lista</a></li>
                 <li><a href="#">Categorías</a></li>
+                <li><a href="/Muggle/src/views/admin/dashboard.php">Admin</a></li>
                 <li class="user-nav-item">
                     <div class="user-menu">
                         <span class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></span>
