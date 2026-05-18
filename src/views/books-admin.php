@@ -14,16 +14,11 @@ $book = $editingBook ?? [
     'tipo' => 'digital',
     'id_categoria' => 1,
     'id_banner' => null,
+    'banner_imagen' => '',
     'fecha_publicado' => '',
 ];
 $existingPdfFiles = $existingPdfFiles ?? [];
 $isEditing = $book['id_libro'] !== null;
-$banners = $banners ?? [];
-$banner = $editingBanner ?? [
-    'id_banner' => null,
-    'imagen' => '',
-];
-$isEditingBanner = $banner['id_banner'] !== null;
 
 function normalizeBannerImageUrl(string $path): string
 {
@@ -67,6 +62,22 @@ include __DIR__ . '/layouts/sidebar.php';
         .btn-primary { background: #111110; color: #fff; }
         .btn-secondary { background: #5F5E5A; color: #fff; }
         .btn-danger { background: #E24B4A; color: #fff; }
+        .btn-icon {
+            border: 0;
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            transition: opacity .15s;
+        }
+        .btn-icon:hover { opacity: .8; }
+        .btn-icon-edit  { background: #5F5E5A; color: #fff; }
+        .btn-icon-delete { background: #E24B4A; color: #fff; }
 
         .grid {
             display: grid;
@@ -178,7 +189,7 @@ include __DIR__ . '/layouts/sidebar.php';
 <div class="admin-topbar">
     <div>
         <h1 class="topbar-title">Panel de Administracion de Libros</h1>
-        <p class="topbar-sub">Gestion de catalogo, archivos y banners</p>
+        <p class="topbar-sub">Gestion de catalogo, archivos y banner por libro</p>
     </div>
 </div>
 
@@ -261,15 +272,13 @@ include __DIR__ . '/layouts/sidebar.php';
                     <?php endforeach; ?>
                 </select>
 
-                <label for="id_banner">Banner asociado</label>
-                <select id="id_banner" name="id_banner">
-                    <option value="">-- Sin banner --</option>
-                    <?php foreach ($banners as $bannerOption): ?>
-                        <option value="<?= (int) $bannerOption['id_banner'] ?>" <?= (int) ($book['id_banner'] ?? 0) === (int) $bannerOption['id_banner'] ? 'selected' : '' ?>>
-                            Banner #<?= (int) $bannerOption['id_banner'] ?> - <?= htmlspecialchars((string) $bannerOption['imagen']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <label for="banner_image">Nuevo banner para este libro (opcional, max 20MB)</label>
+                <input type="file" id="banner_image" name="banner_image" accept="image/*">
+
+                <?php if ($isEditing && !empty($book['banner_imagen'])): ?>
+                    <label>Banner actual del libro</label>
+                    <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $book['banner_imagen'])) ?>" alt="Banner del libro" class="banner-cover">
+                <?php endif; ?>
 
                 <label for="fecha_publicado">Fecha publicado</label>
                 <input type="date" id="fecha_publicado" name="fecha_publicado" value="<?= htmlspecialchars((string) $book['fecha_publicado']) ?>">
@@ -322,11 +331,11 @@ include __DIR__ . '/layouts/sidebar.php';
                                 <td><?= htmlspecialchars($row['categoria']) ?></td>
                                 <td>
                                     <div class="actions">
-                                        <a class="btn btn-secondary" href="admin_books.php?action=edit&id=<?= (int) $row['id_libro'] ?>">Editar</a>
-                                        <form method="POST" action="admin_books.php" onsubmit="return confirm('¿Seguro que quieres eliminar este libro?');">
+                                        <a class="btn-icon btn-icon-edit" href="admin_books.php?action=edit&id=<?= (int) $row['id_libro'] ?>" title="Editar"><i class="fas fa-pencil-alt"></i></a>
+                                        <form method="POST" action="admin_books.php" onsubmit="return confirm('¿Seguro que quieres eliminar este libro?');" style="display:inline;">
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= (int) $row['id_libro'] ?>">
-                                            <button class="btn btn-danger" type="submit">Eliminar</button>
+                                            <button class="btn-icon btn-icon-delete" type="submit" title="Eliminar"><i class="fas fa-trash"></i></button>
                                         </form>
                                     </div>
                                 </td>
@@ -339,75 +348,6 @@ include __DIR__ . '/layouts/sidebar.php';
         </div>
     </div>
 
-    <h2 class="section-title" id="banners">Gestion de banners</h2>
-    <div class="grid" style="grid-template-columns: 1fr 1.4fr;">
-        <div class="card">
-            <h2><?= $isEditingBanner ? 'Editar banner' : 'Nuevo banner' ?></h2>
-            <form method="POST" action="admin_books.php#banners" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="<?= $isEditingBanner ? 'update_banner' : 'create_banner' ?>">
-                <?php if ($isEditingBanner): ?>
-                    <input type="hidden" name="id_banner" value="<?= (int) $banner['id_banner'] ?>">
-                <?php endif; ?>
-
-                <label for="banner_image">Imagen de banner (max 20MB) *</label>
-                <input type="file" id="banner_image" name="banner_image" accept="image/*">
-
-                <?php if ($isEditingBanner && !empty($banner['imagen'])): ?>
-                    <label>Imagen actual</label>
-                    <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $banner['imagen'])) ?>" alt="Banner actual" class="banner-cover">
-                    <input type="hidden" name="imagen" value="<?= htmlspecialchars(normalizeBannerImageUrl((string) $banner['imagen'])) ?>">
-                <?php endif; ?>
-
-                <div style="margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap;">
-                    <button class="btn btn-primary" type="submit"><?= $isEditingBanner ? 'Guardar banner' : 'Crear banner' ?></button>
-                    <?php if ($isEditingBanner): ?>
-                        <a href="admin_books.php#banners" class="btn btn-secondary">Cancelar</a>
-                    <?php endif; ?>
-                </div>
-            </form>
-        </div>
-
-        <div class="card">
-            <h2>Listado de banners</h2>
-            <?php if (count($banners) === 0): ?>
-                <div class="empty">No hay banners cargados todavia.</div>
-            <?php else: ?>
-                <div class="table-wrap">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Imagen</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($banners as $row): ?>
-                            <tr>
-                                <td><?= (int) $row['id_banner'] ?></td>
-                                <td>
-                                    <?php if (!empty($row['imagen'])): ?>
-                                        <img src="<?= htmlspecialchars(normalizeBannerImageUrl((string) $row['imagen'])) ?>" alt="Banner" class="banner-cover">
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <div class="actions">
-                                        <a class="btn btn-secondary" href="admin_books.php?action=edit_banner&banner_id=<?= (int) $row['id_banner'] ?>#banners">Editar</a>
-                                        <form method="POST" action="admin_books.php#banners" onsubmit="return confirm('¿Seguro que quieres eliminar este banner?');">
-                                            <input type="hidden" name="action" value="delete_banner">
-                                            <input type="hidden" name="id_banner" value="<?= (int) $row['id_banner'] ?>">
-                                            <button class="btn btn-danger" type="submit">Eliminar</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
 </div>
 
 <script>

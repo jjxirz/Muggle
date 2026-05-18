@@ -174,7 +174,13 @@ class BookModel
 
     public function find(int $id): ?array
     {
-        $stmt = $this->db->prepare('SELECT * FROM libros WHERE id_libro = :id LIMIT 1');
+        $stmt = $this->db->prepare(
+            'SELECT l.*, b.imagen AS banner_imagen
+             FROM libros l
+             LEFT JOIN banners b ON b.id_banner = l.id_banner
+             WHERE l.id_libro = :id
+             LIMIT 1'
+        );
         $stmt->execute(['id' => $id]);
         $book = $stmt->fetch();
 
@@ -282,6 +288,32 @@ class BookModel
         $stmt = $this->db->prepare('DELETE FROM banners WHERE id_banner = :id');
 
         return $stmt->execute(['id' => $id]);
+    }
+
+    public function saveBannerForBook(int $bookId, string $imagePath): void
+    {
+        $imagePath = trim($imagePath);
+        if ($imagePath === '') {
+            return;
+        }
+
+        $book = $this->find($bookId);
+        if ($book === null) {
+            throw new RuntimeException('No se encontro el libro para asociar su banner.');
+        }
+
+        $existingBannerId = isset($book['id_banner']) ? (int) $book['id_banner'] : 0;
+        if ($existingBannerId > 0) {
+            $this->updateBanner($existingBannerId, ['imagen' => $imagePath]);
+            return;
+        }
+
+        $bannerId = $this->createBanner(['imagen' => $imagePath]);
+        $stmt = $this->db->prepare('UPDATE libros SET id_banner = :id_banner WHERE id_libro = :id_libro');
+        $stmt->execute([
+            'id_banner' => $bannerId,
+            'id_libro' => $bookId,
+        ]);
     }
 
     private function sanitizeData(array $data): array

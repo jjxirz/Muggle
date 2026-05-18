@@ -35,6 +35,11 @@ if (!isset($activePage)) $activePage = '';
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
+            <a href="/Muggle/index.php"
+               class="sidebar-item <?= $activePage === 'pagina' ? 'active' : '' ?>">
+                <i class="fas fa-home"></i>
+                <span>Página</span>
+            </a>
 
             <div class="sidebar-section">Catálogo</div>
             <a href="../admin/catalogo.php"
