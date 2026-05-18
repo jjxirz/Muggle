@@ -146,7 +146,7 @@ $user_email = $_SESSION['user_email'] ?? '';
                 <li><a href="#">Explorar</a></li>
                 <li><a href="#">Mi lista</a></li>
                 <li><a href="#">Categorías</a></li>
-                <li><a href="/Muggle/src/views/admin/dashboard.php">Admin</a></li>
+                <li><a href="/Muggle/Muggle/src/views/admin/dashboard.php">Admin</a></li>
                 <li class="user-nav-item">
                     <div class="user-menu">
                         <span class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></span>
