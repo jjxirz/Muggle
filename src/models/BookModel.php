@@ -101,7 +101,7 @@ class BookModel
                         ELSE 'digital'
                     END,
                     COALESCE(id_categoria, 1),
-                    fecha_publicacion
+                    fecha_publicado
                  FROM LIBROS"
             );
         }
