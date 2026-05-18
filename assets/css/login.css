@@ -1,18 +1,18 @@
-/* ==================== LOGIN CSS - TEMÁTICA HOGWARTS/NETFLIX ==================== */
+/* ==================== LOGIN CSS - ESTILO FLAT ==================== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* Variables de tema (mismo sistema que la página principal) */
 :root,
 .theme-ravenclaw {
     --color-primary: #0e1a2b;
     --color-secondary: #5f7f9e;
     --color-highlight: #cdb57c;
     --color-text-light: #ffffff;
-    --color-text-dark: #1e2a3a;
+    --color-text-muted: #b7c0cc;
     --color-bg-dark: #141414;
-    --color-card-bg: rgba(20, 20, 20, 0.95);
-    --color-error: #e50914;
-    --color-success: #46d369;
+    --color-card-bg: #181f2a;
+    --color-card-border: #2f3a4a;
+    --color-input-bg: #101722;
+    --color-error: #d64545;
 }
 
 * {
@@ -23,89 +23,61 @@
 
 body {
     font-family: 'Inter', 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, var(--color-primary) 0%, #0a0a0a 100%);
+    background-color: var(--color-bg-dark);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
+    color: var(--color-text-light);
     overflow-x: hidden;
 }
 
-/* Fondo decorativo estilo Hogwarts */
-body::before {
-    content: '🦅';
-    position: absolute;
-    font-size: 300px;
-    opacity: 0.03;
-    bottom: -50px;
-    right: -50px;
-    pointer-events: none;
-}
-
-body::after {
-    content: '📚';
-    position: absolute;
-    font-size: 250px;
-    opacity: 0.03;
-    top: -50px;
-    left: -50px;
-    pointer-events: none;
-}
-
-/* Contenedor principal */
 .login-container {
     width: 100%;
     max-width: 480px;
     padding: 1.5rem;
-    position: relative;
-    z-index: 1;
 }
 
-/* Tarjeta de login estilo Netflix/Hogwarts */
 .login-card {
-    background: var(--color-card-bg);
-    backdrop-filter: blur(10px);
-    border-radius: 24px;
+    background-color: var(--color-card-bg);
+    border-radius: 18px;
     padding: 2.5rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: transform 0.3s ease;
+    border: 1px solid var(--color-card-border);
 }
 
-.login-card:hover {
-    transform: translateY(-4px);
-}
-
-/* Header del login */
 .login-header {
     text-align: center;
     margin-bottom: 2rem;
 }
 
-.logo-icon {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
+.login-logo-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+    margin: 0 auto 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-highlight);
+    color: var(--color-highlight);
+    font-size: 1.8rem;
 }
 
 .login-header h1 {
     font-size: 1.8rem;
     font-weight: 800;
     letter-spacing: 2px;
-    background: linear-gradient(135deg, var(--color-highlight) 0%, var(--color-secondary) 100%);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
+    color: var(--color-highlight);
     line-height: 1.2;
 }
 
 .login-header p {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-text-muted);
     font-size: 0.85rem;
     margin-top: 0.5rem;
 }
 
-/* Formulario */
 .login-form h2 {
     font-size: 1.5rem;
     font-weight: 600;
@@ -116,12 +88,24 @@ body::after {
 
 .subtitle {
     text-align: center;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-text-muted);
     font-size: 0.85rem;
-    margin-bottom: 1.8rem;
+    margin-bottom: 1.5rem;
 }
 
-/* Social login (Google) */
+.alert-error {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: #2a171a;
+    border: 1px solid var(--color-error);
+    color: #ffd6d6;
+    padding: 0.85rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    margin-bottom: 1.2rem;
+}
+
 .social-login {
     display: flex;
     justify-content: center;
@@ -132,13 +116,12 @@ body::after {
     min-width: 240px;
 }
 
-/* Divider */
 .divider {
     display: flex;
     align-items: center;
     text-align: center;
     margin: 1.5rem 0;
-    color: rgba(255, 255, 255, 0.4);
+    color: var(--color-text-muted);
     font-size: 0.8rem;
 }
 
@@ -146,7 +129,7 @@ body::after {
 .divider::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    border-bottom: 1px solid var(--color-card-border);
 }
 
 .divider::before {
@@ -157,81 +140,75 @@ body::after {
     margin-left: 1rem;
 }
 
-/* Formulario email */
 .email-form {
     display: flex;
     flex-direction: column;
     gap: 1rem;
 }
 
+.input-group label {
+    display: block;
+    margin-bottom: 0.45rem;
+    color: var(--color-text-muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.input-group label i {
+    color: var(--color-highlight);
+    margin-right: 0.35rem;
+}
+
 .input-group input {
     width: 100%;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
+    background-color: var(--color-input-bg);
+    border: 1px solid var(--color-card-border);
+    border-radius: 10px;
     color: var(--color-text-light);
     font-size: 0.95rem;
-    transition: all 0.3s;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .input-group input:focus {
     outline: none;
     border-color: var(--color-highlight);
-    background: rgba(255, 255, 255, 0.12);
+    background-color: #111c2b;
 }
 
 .input-group input::placeholder {
-    color: rgba(255, 255, 255, 0.4);
+    color: #788294;
 }
 
-/* Botón login */
-/* ==================== BOTÓN DE LOGIN SÓLIDO ==================== */
 .btn-login {
     width: 100%;
     padding: 1rem;
-    background-color: var(--color-highlight); /* Color sólido dorado/bronce */
-    border: none;
-    border-radius: 12px;
+    background-color: var(--color-highlight);
+    border: 1px solid var(--color-highlight);
+    border-radius: 10px;
     color: var(--color-primary);
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     margin-top: 0.5rem;
 }
 
 .btn-login:hover {
-    background-color: var(--color-secondary); /* Cambia al azul plateado al hacer hover */
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background-color: var(--color-secondary);
+    border-color: var(--color-secondary);
+    color: var(--color-text-light);
 }
 
-.btn-login:active {
-    transform: scale(0.98);
+.btn-login i {
+    margin-right: 0.4rem;
 }
 
-/* Credenciales demo */
-.demo-credentials {
-    text-align: center;
-    margin-top: 1.5rem;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.5);
-}
-
-.demo-credentials strong {
-    color: var(--color-highlight);
-}
-
-/* Enlace registro */
 .signup-link {
     text-align: center;
     margin-top: 1.5rem;
     font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-text-muted);
 }
 
 .signup-link a {
@@ -244,56 +221,55 @@ body::after {
     text-decoration: underline;
 }
 
-/* Footer login */
 .login-footer {
     margin-top: 2rem;
     text-align: center;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
 }
 
 .login-footer a {
-    color: rgba(255, 255, 255, 0.6);
+    color: var(--color-highlight);
     text-decoration: none;
 }
 
 .login-footer a:hover {
-    color: var(--color-highlight);
+    text-decoration: underline;
 }
 
 .house-badge {
     margin-top: 1rem;
-    font-size: 1.2rem;
-    letter-spacing: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
-/* Responsive */
+.house-badge span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-card-border);
+    color: var(--color-text-muted);
+}
+
+.house-badge i {
+    color: var(--color-highlight);
+}
+
 @media (max-width: 480px) {
     .login-card {
         padding: 1.8rem;
     }
-    
+
     .login-header h1 {
         font-size: 1.4rem;
     }
-    
+
     .btn-login {
         padding: 0.85rem;
     }
-}
-
-/* Animación sutil */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.login-card {
-    animation: fadeInUp 0.5s ease-out;
 }
