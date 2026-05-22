@@ -23,9 +23,7 @@ body.preview-open {
     padding: 24px;
     text-align: center;
 
-    background:
-        radial-gradient(circle at top left, rgba(205, 181, 124, 0.22), transparent 35%),
-        linear-gradient(135deg, #0e1a2b, #1a2a3a);
+    background: #1a1a1a;
 
     color: #ffffff;
 }
@@ -53,7 +51,7 @@ body.preview-open {
     inset: 0;
     z-index: 9999;
 
-    display: none;
+    display: flex;
     align-items: flex-start;
     justify-content: center;
 
@@ -62,10 +60,16 @@ body.preview-open {
 
     background: rgba(0, 0, 0, 0.82);
     backdrop-filter: blur(4px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.32s ease, visibility 0.32s ease;
 }
 
 .book-preview-backdrop.is-open {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .book-preview-modal {
@@ -79,38 +83,38 @@ body.preview-open {
     color: #ffffff;
 
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
-    animation: previewEnter 0.18s ease-out;
+    opacity: 0;
+    transform: translateY(16px) scale(0.985);
+    transition: opacity 0.32s ease, transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes previewEnter {
-    from {
-        transform: translateY(16px) scale(0.98);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
+.book-preview-backdrop.is-open .book-preview-modal {
+    opacity: 1;
+    transform: translateY(0) scale(1);
 }
 
 .book-preview-close {
     position: absolute;
-    top: 16px;
-    right: 16px;
+    top: 14px;
+    right: 14px;
     z-index: 4;
 
     width: 38px;
     height: 38px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
     border: 0;
     border-radius: 50%;
 
     background: rgba(0, 0, 0, 0.72);
     color: #ffffff;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
 
-    font-size: 28px;
-    line-height: 34px;
+    font-size: 20px;
+    line-height: 1;
 
     cursor: pointer;
 }
@@ -133,9 +137,7 @@ body.preview-open {
     position: absolute;
     inset: 0;
 
-    background:
-        linear-gradient(90deg, rgba(17, 25, 35, 0.98) 0%, rgba(17, 25, 35, 0.78) 45%, rgba(17, 25, 35, 0.30) 100%),
-        linear-gradient(0deg, #111923 0%, rgba(17, 25, 35, 0.12) 52%, rgba(17, 25, 35, 0.34) 100%);
+    background: rgba(17, 25, 35, 0.72);
 }
 
 .book-preview-hero-content {
@@ -188,7 +190,8 @@ body.preview-open {
 }
 
 .book-preview-read-btn,
-.book-preview-icon-btn {
+.book-preview-icon-btn,
+.book-preview-list-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -221,14 +224,16 @@ body.preview-open {
     filter: grayscale(1);
 }
 
-.book-preview-icon-btn {
+.book-preview-icon-btn,
+.book-preview-list-btn {
     border: 1px solid rgba(255, 255, 255, 0.28);
 
     background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
 }
 
-.book-preview-icon-btn:hover {
+.book-preview-icon-btn:hover,
+.book-preview-list-btn:hover {
     background: rgba(255, 255, 255, 0.14);
 }
 
@@ -270,9 +275,7 @@ body.preview-open {
 
     border-radius: 12px;
 
-    background:
-        radial-gradient(circle at top left, rgba(205, 181, 124, 0.20), transparent 38%),
-        linear-gradient(135deg, #0e1a2b, #20354a);
+    background: #1a1a1a;
 
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
 }
@@ -309,9 +312,7 @@ body.preview-open {
 
     border-radius: 12px;
 
-    background:
-        radial-gradient(circle at top left, rgba(205, 181, 124, 0.20), transparent 38%),
-        linear-gradient(135deg, #0e1a2b, #20354a);
+    background: #1a1a1a;
 
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
 }

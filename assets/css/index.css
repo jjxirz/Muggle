@@ -108,7 +108,7 @@ body.theme-hufflepuff {
     padding: 24px;
     text-align: center;
 
-    background: linear-gradient(135deg, #101820, #1a2a3a);
+    background: #1a1a1a;
     color: #ffffff;
 }
 
@@ -214,12 +214,7 @@ body.preview-open {
     position: absolute;
     inset: 0;
 
-    background: linear-gradient(
-        90deg,
-        rgba(17, 25, 35, 0.98),
-        rgba(17, 25, 35, 0.78),
-        rgba(17, 25, 35, 0.28)
-    );
+    background: rgba(17, 25, 35, 0.72);
 }
 
 .book-preview-hero-content {
@@ -321,7 +316,7 @@ body.preview-open {
 
     border-radius: 12px;
 
-    background: linear-gradient(135deg, #0e1a2b, #20354a);
+    background: #1a1a1a;
 
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
 }

@@ -1,15 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../lib/Auth.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
-
-if (isset($_SESSION['user_role']) && $_SESSION['user_role'] !== 'admin') {
-    http_response_code(403);
-    exit('Acceso denegado. Solo administradores.');
-}
+require_admin();
 
 require_once __DIR__ . '/../../controllers/BookController.php';
 

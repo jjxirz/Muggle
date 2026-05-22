@@ -1,0 +1,3 @@
+admin@hogwarts.local / Admin123! => OK
+harry@hogwarts.local / Usuario123! => OK
+hermione@hogwarts.local / Lectura123! => OK

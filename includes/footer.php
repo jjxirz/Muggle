@@ -26,9 +26,9 @@ if (!isset($current_house)) {
             <div class="footer-col">
                 <h4>Explorar</h4>
                 <ul>
-                    <li><a href="#">Tendencias</a></li>
-                    <li><a href="#">Novedades</a></li>
-                    <li><a href="#">Los más leídos</a></li>
+                    <li><a href="explorar.php">Explorar</a></li>
+                    <li><a href="categorias.php">Categorías</a></li>
+                    <li><a href="index.php#catalogo-pdf">Catálogo destacado</a></li>
                 </ul>
             </div>
 
@@ -36,17 +36,17 @@ if (!isset($current_house)) {
                 <h4>Mi cuenta</h4>
                 <ul>
                     <li><a href="perfil.php">Perfil</a></li>
-                    <li><a href="#">Mi lista</a></li>
-                    <li><a href="#">Favoritos</a></li>
+                    <li><a href="mi-lista.php">Mi lista</a></li>
+                    <li><a href="mi-lista.php">Favoritos</a></li>
                 </ul>
             </div>
 
             <div class="footer-col">
                 <h4>Soporte</h4>
                 <ul>
-                    <li><a href="#">Preguntas frecuentes</a></li>
-                    <li><a href="#">Contacto</a></li>
-                    <li><a href="#">Términos</a></li>
+                    <li><a href="faq.php">Preguntas frecuentes</a></li>
+                    <li><a href="contacto.php">Contacto</a></li>
+                    <li><a href="terminos.php">Términos</a></li>
                 </ul>
             </div>
         </div>
