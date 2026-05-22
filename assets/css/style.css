@@ -6,8 +6,8 @@
 }
 
 body {
-    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    background-color: #141414;
+    font-family: 'Netflix Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    background-color: #000000;
     color: #ffffff;
     line-height: 1.5;
 }
@@ -131,8 +131,8 @@ i {
 
 /* ==================== HERO ==================== */
 .hero {
-    min-height: 78vh;
-    background-color: #0e1a2b;
+    min-height: 85vh;
+    background: #111111;
     display: flex;
     align-items: center;
     margin-bottom: 2rem;
@@ -144,12 +144,10 @@ i {
 }
 
 .hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    background-color: #cdb57c;
-    color: #0e1a2b;
-    padding: 0.35rem 1rem;
+    display: inline-block;
+    background-color: #ffffff;
+    color: #000000;
+    padding: 0.3rem 1rem;
     border-radius: 4px;
     font-size: 0.8rem;
     font-weight: 700;
@@ -201,8 +199,9 @@ i {
 }
 
 .btn-primary:hover {
-    background-color: #5f7f9e;
-    color: #ffffff;
+    background-color: #cfcfcf;
+    color: #000000;
+    transform: scale(1.02);
 }
 
 .btn-secondary {
@@ -212,8 +211,9 @@ i {
 }
 
 .btn-secondary:hover {
-    background-color: #cdb57c;
-    color: #0e1a2b;
+    background-color: #ffffff;
+    color: #000000;
+    transform: scale(1.02);
 }
 
 /* ==================== SECCIONES ==================== */
@@ -346,16 +346,21 @@ i {
 }
 
 .play-btn {
-    width: 52px;
-    height: 52px;
-    background-color: #cdb57c;
+    width: 50px;
+    height: 50px;
+    background-color: #ffffff;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: #0e1a2b;
-    font-size: 1.25rem;
+    color: #000000;
+    font-size: 1.5rem;
+    transition: transform 0.3s;
+}
+
+.play-btn:hover {
+    transform: scale(1.1);
 }
 
 .book-info {
@@ -421,9 +426,9 @@ i {
 }
 
 .house-btn {
-    background-color: transparent;
-    border: 2px solid #cdb57c;
-    color: #cdb57c;
+    background: transparent;
+    border: 2px solid #ffffff;
+    color: #ffffff;
     padding: 0.8rem 1.5rem;
     border-radius: 999px;
     font-size: 1rem;
@@ -436,7 +441,12 @@ i {
     gap: 0.45rem;
 }
 
-.house-btn:hover,
+.house-btn:hover {
+    background-color: #ffffff;
+    color: #000000;
+    transform: scale(1.05);
+}
+
 .active-house {
     background-color: #ffffff;
     color: #000000;
