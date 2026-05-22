@@ -12,7 +12,7 @@ if (!isset($activePage)) $activePage = '';
     <!-- Bootstrap 4 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/Muggle/assets/css/admin.css">
+    <link rel="stylesheet" href="/Muggle/Muggle/assets/css/admin.css">
 </head>
 <body>
 
@@ -67,18 +67,18 @@ if (!isset($activePage)) $activePage = '';
             <!--<a href="../admin/logs.php"
                class="sidebar-item <?= $activePage === 'logs' ? 'active' : '' ?>">
                 <i class="fas fa-terminal"></i>
-                <span>Logs</span>
+                <span></span>
             </a>-->
         </div>
 
         <div class="sidebar-footer">
             <a href="../admin/configuracion.php" class="sidebar-item">
-                <i class="fas fa-cog"></i>
-                <span>Configuración</span>
+                <i class="fas fa-user"></i>
+                <span>Perfil</span>
             </a>
-            <a href="../admin/logout.php" class="sidebar-item sidebar-item--danger">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Cerrar sesión</span>
+            <a href="../../../index.php" class="sidebar-item sidebar-item--danger">
+                <i class="fas fa-arrow-left"></i>
+                <span>Regresar</span>
             </a>
         </div>
 
