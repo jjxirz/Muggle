@@ -1,20 +1,20 @@
 <?php
-session_start();
+require_once __DIR__ . '/src/lib/Auth.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
+require_login();
 
-$baseUrl = '/Muggle';
+$baseUrl = app_base_url();
 $assetUrl = $baseUrl . '/assets';
 $bookImagesPath = __DIR__ . '/assets/img-books';
 $bookImagesUrl = $assetUrl . '/img-books';
 
+$themeEnabled = (bool) ($_SESSION['theme_enabled'] ?? true);
+$brandTitle = 'HOGWARTS';
+
 $house = $_GET['house'] ?? $_SESSION['selected_house'] ?? 'ravenclaw';
 $validHouses = ['ravenclaw', 'gryffindor', 'slytherin', 'hufflepuff'];
 
-if (!in_array($house, $validHouses, true)) {
+if (!$themeEnabled || !in_array($house, $validHouses, true)) {
     $house = 'ravenclaw';
 }
 
@@ -26,9 +26,9 @@ $houses_config = [
         'icon' => 'fa-feather-alt',
         'emoji' => '🦅',
         'logo_img' => 'assets/img/ravenclaw.jpg',
-        'color' => '#0e1a2b',
-        'secondary' => '#5f7f9e',
-        'highlight' => '#cdb57c',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3b7d6',
         'text_color' => '#ffffff'
     ],
     'gryffindor' => [
@@ -36,9 +36,9 @@ $houses_config = [
         'icon' => 'fa-shield-alt',
         'emoji' => '🦁',
         'logo_img' => 'assets/img/gryffindor.jpg',
-        'color' => '#541011',
-        'secondary' => '#7a1d1f',
-        'highlight' => '#eeba30',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6a3a3',
         'text_color' => '#ffffff'
     ],
     'slytherin' => [
@@ -46,9 +46,9 @@ $houses_config = [
         'icon' => 'fa-dragon',
         'emoji' => '🐍',
         'logo_img' => 'assets/img/slytherin.jpg',
-        'color' => '#1a472a',
-        'secondary' => '#2a623d',
-        'highlight' => '#c8c8c8',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3d6b7',
         'text_color' => '#ffffff'
     ],
     'hufflepuff' => [
@@ -56,9 +56,9 @@ $houses_config = [
         'icon' => 'fa-seedling',
         'emoji' => '🦡',
         'logo_img' => 'assets/img/hufflepuff.jpg',
-        'color' => '#806216',
-        'secondary' => '#9a7923',
-        'highlight' => '#f0c75e',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6c6a3',
         'text_color' => '#ffffff'
     ]
 ];
@@ -288,7 +288,9 @@ function getPdfBooksFromFolder(string $folderPath, string $assetUrl, string $ima
             'banner' => $cover,
             'description' => $meta['description'],
             'pdf' => $assetUrl . '/books/' . rawurlencode($file),
-            'reader' => '/Muggle/reader.php?book=' . rawurlencode($file)
+            'reader' => app_url('reader.php') . '?book=' . rawurlencode($file),
+            'file' => 'assets/books/' . $file,
+            'type' => 'pdf',
         ];
     }
 
@@ -304,9 +306,11 @@ function renderBookCard(array $book): void {
     $pages = $book['pages'] ?? 'Archivo disponible';
     $pdf = $book['pdf'] ?? '';
     $reader = $book['reader'] ?? $pdf;
+    $file = $book['file'] ?? '';
     $cover = $book['cover'] ?? '';
     $banner = $book['banner'] ?? '';
     $tags = $book['tags'] ?? $category;
+    $type = $book['type'] ?? 'pdf';
     ?>
     <div class="book-card js-book-preview"
          role="button"
@@ -319,6 +323,8 @@ function renderBookCard(array $book): void {
          data-pages="<?php echo e($pages); ?>"
          data-pdf="<?php echo e($pdf); ?>"
          data-reader="<?php echo e($reader); ?>"
+         data-file="<?php echo e($file); ?>"
+         data-type="<?php echo e($type); ?>"
          data-cover="<?php echo e($cover); ?>"
          data-banner="<?php echo e($banner); ?>"
          data-tags="<?php echo e($tags); ?>">
@@ -345,157 +351,10 @@ function renderBookCard(array $book): void {
     <?php
 }
 
-function normalizeAssetImageUrl(string $value, string $assetUrl, string $folder): string
-{
-    $value = trim($value);
-
-    if ($value === '') {
-        return '';
-    }
-
-    if (preg_match('/^https?:\/\//i', $value) || str_starts_with($value, '/')) {
-        return $value;
-    }
-
-    if (str_starts_with($value, 'banners/')) {
-        return $assetUrl . '/banners/' . rawurlencode(basename($value));
-    }
-
-    if (str_starts_with($value, 'img-books/')) {
-        return $assetUrl . '/img-books/' . rawurlencode(basename($value));
-    }
-
-    if (str_starts_with($value, 'assets/')) {
-        return '/Muggle/' . ltrim($value, '/');
-    }
-
-    $decodedName = urldecode(basename($value));
-    $folderPath = __DIR__ . '/assets/' . trim($folder, '/');
-
-    if (is_dir($folderPath)) {
-        $targetName = normalizeBookName($decodedName);
-        $files = scandir($folderPath);
-
-        if ($files !== false) {
-            foreach ($files as $file) {
-                $filePath = $folderPath . DIRECTORY_SEPARATOR . $file;
-                if (!is_file($filePath)) {
-                    continue;
-                }
-
-                $fileName = normalizeBookName($file);
-                if ($fileName === $targetName) {
-                    return $assetUrl . '/' . trim($folder, '/') . '/' . rawurlencode($file);
-                }
-            }
-
-            foreach ($files as $file) {
-                $filePath = $folderPath . DIRECTORY_SEPARATOR . $file;
-                if (!is_file($filePath)) {
-                    continue;
-                }
-
-                $fileName = normalizeBookName($file);
-                if (
-                    $fileName !== '' &&
-                    $targetName !== '' &&
-                    (strpos($fileName, $targetName) !== false || strpos($targetName, $fileName) !== false)
-                ) {
-                    return $assetUrl . '/' . trim($folder, '/') . '/' . rawurlencode($file);
-                }
-            }
-        }
-    }
-
-    return $assetUrl . '/' . trim($folder, '/') . '/' . rawurlencode($decodedName);
-}
-
-/**
- * @return array<int, array<string, string>>
- */
-function getBooksFromDatabase(string $assetUrl): array
-{
-    try {
-        require_once __DIR__ . '/src/models/Database.php';
-        $db = Database::getConnection();
-        $stmt = $db->query(
-            'SELECT l.*, c.nombre AS categoria, b.imagen AS banner_imagen
-             FROM libros l
-             INNER JOIN categorias c ON c.id_categoria = l.id_categoria
-             LEFT JOIN banners b ON b.id_banner = l.id_banner
-             ORDER BY l.id_libro DESC'
-        );
-        $rows = $stmt->fetchAll();
-    } catch (Throwable $e) {
-        return [];
-    }
-
-    $books = [];
-    foreach ($rows as $row) {
-        $archivo = trim((string) ($row['archivo'] ?? ''));
-        $readerUrl = '';
-        if ($archivo !== '') {
-            if (preg_match('/^https?:\/\//i', $archivo)) {
-                $readerUrl = $archivo;
-            } elseif (str_starts_with($archivo, 'assets/books/')) {
-                $readerUrl = '/Muggle/reader.php?book=' . rawurlencode(basename($archivo));
-            } else {
-                $readerUrl = $archivo;
-            }
-        }
-
-        $portada = normalizeAssetImageUrl((string) ($row['portada'] ?? ''), $assetUrl, 'img-books');
-        $banner  = normalizeAssetImageUrl((string) ($row['banner_imagen'] ?? ''), $assetUrl, 'banners');
-        $year    = !empty($row['fecha_publicado']) ? substr((string) $row['fecha_publicado'], 0, 4) : 'Disponible';
-        $titulo  = trim((string) ($row['titulo'] ?? ''));
-        $autor   = trim((string) ($row['autor'] ?? ''));
-        $cat     = trim((string) ($row['categoria'] ?? 'General'));
-
-        $books[] = [
-            'title'       => $titulo !== '' ? $titulo : 'Sin título',
-            'author'      => $autor !== '' ? $autor : 'Autor no especificado',
-            'category'    => $cat,
-            'year'        => $year,
-            'pages'       => ucfirst((string) ($row['tipo'] ?? 'digital')),
-            'tags'        => $cat,
-            'cover'       => $portada,
-            'banner'      => $banner,
-            'description' => trim((string) ($row['descripcion'] ?? 'Obra disponible en el catálogo digital.')),
-            'pdf'         => $archivo !== '' ? ($assetUrl . '/books/' . rawurlencode(basename($archivo))) : '',
-            'reader'      => $readerUrl,
-            'source'      => 'db',
-        ];
-    }
-    return $books;
-}
-
 $pdfBooks = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
-$dbBooks  = getBooksFromDatabase($assetUrl);
-
-// Quitar de PDF los que ya existen en DB (mismo archivo base)
-$dbFilenames = [];
-foreach ($dbBooks as $dbBook) {
-    if ($dbBook['pdf'] !== '') {
-        $dbFilenames[] = basename($dbBook['pdf']);
-    }
-}
-$pdfBooksFiltered = array_values(array_filter($pdfBooks, function (array $b) use ($dbFilenames): bool {
-    return !in_array(basename($b['pdf']), $dbFilenames, true);
-}));
-
-// Featured: primer libro de DB con banner, si no el primero de DB, si no el primero PDF
-$featuredBook = null;
-foreach ($dbBooks as $candidate) {
-    if ($candidate['banner'] !== '') {
-        $featuredBook = $candidate;
-        break;
-    }
-}
-if ($featuredBook === null) {
-    $featuredBook = $dbBooks[0] ?? $pdfBooksFiltered[0] ?? null;
-}
-
-$bookSections = array_chunk($pdfBooksFiltered, 5);
+$featuredBook = $pdfBooks[0] ?? null;
+$featuredSlides = array_slice($pdfBooks, 0, 5);
+$bookSections = array_chunk($pdfBooks, 5);
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -503,21 +362,47 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($current_house['name']); ?> Libraries | Stream de libros mágicos</title>
+    <title>Hogwarts | Biblioteca digital</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/book-preview.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+    <meta name="app-base-url" content="<?php echo e($baseUrl); ?>">
     <style>
+        .logo-brand-core {
+            font-size: 0.72rem;
+            opacity: 0.75;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: block;
+        }
+
+        .theme-switch-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-left: 0.5rem;
+        }
+
+        .theme-switch-inline select {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+            padding: 0.25rem 0.8rem;
+            font-size: 0.75rem;
+        }
+
         .main-header {
-            background-color: <?php echo $current_house['color']; ?> !important;
-            border-bottom-color: <?php echo $current_house['highlight']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
+            border-bottom-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
         }
 
         .nav-menu a:hover,
         .nav-menu a.active,
         .view-all:hover,
         .footer-col a:hover {
-            color: <?php echo $current_house['highlight']; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-primary,
@@ -526,53 +411,236 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
         .active-house,
         .books-carousel::-webkit-scrollbar-thumb,
         .section-title::after {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-primary,
         .hero-badge,
         .play-btn,
         .active-house {
-            color: <?php echo $current_house['color']; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .btn-primary:hover,
         .category-card:hover,
         .logout-btn:hover {
-            background-color: <?php echo $current_house['secondary']; ?> !important;
-            color: <?php echo $current_house['text_color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['secondary'] : '#5f5e5a'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['text_color'] : '#ffffff'; ?> !important;
         }
 
         .btn-secondary,
         .house-btn {
-            border-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['highlight']; ?> !important;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-secondary:hover,
         .house-btn:hover {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .category-card {
-            background-color: <?php echo $current_house['color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .hero {
-            background-color: <?php echo $current_house['color']; ?>;
-            border-bottom: 1px solid <?php echo $current_house['highlight']; ?> !important;
-            <?php if (!empty($featuredBook['banner'])): ?>
-            background:
-                linear-gradient(
-                    90deg,
-                    <?php echo $current_house['color']; ?>cc 0%,
-                    <?php echo $current_house['color']; ?>99 35%,
-                    <?php echo $current_house['color']; ?>33 62%,
-                    transparent 100%
-                ),
-                url('<?php echo e($featuredBook['banner']); ?>') center / cover no-repeat;
-            <?php endif; ?>
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            border-bottom: 1px solid <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
+        }
+
+        .featured-hero {
+            position: relative;
+            min-height: 90vh;
+            overflow: hidden;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            border-bottom: 1px solid <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
+            margin: 0 0 2rem;
+        }
+
+        .featured-hero .hero-slide {
+            position: relative;
+            width: 100%;
+            min-height: 90vh;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            background-position: center;
+            background-size: cover;
+            display: none;
+        }
+
+        .featured-hero .hero-slide.is-active {
+            display: grid;
+            place-items: center;
+            z-index: 2;
+            animation: heroFadeIn 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes heroFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 8, 8, 0.46);
+        }
+
+        .featured-hero .hero-content.featured-hero-content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            min-height: 90vh;
+            display: grid;
+            place-items: center;
+            padding: 0 1.2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .featured-hero .hero-panel.featured-hero-panel {
+            width: min(980px, 100%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(10, 10, 10, 0.88);
+            border-radius: 18px;
+            padding: 2.9rem 3rem;
+            backdrop-filter: blur(2px);
+            margin: 0 auto;
+            text-align: center;
+            justify-self: center;
+            box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38);
+        }
+
+        .featured-hero .hero-badge {
+            margin-bottom: 1.1rem;
+            font-size: 0.76rem;
+            letter-spacing: 0.03em;
+        }
+
+        .hero-panel .hero-title {
+            color: #ffffff;
+            font-size: clamp(2.3rem, 5.4vw, 4rem);
+            line-height: 1.02;
+            margin-bottom: 0.95rem;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+        }
+
+        .hero-panel .hero-description {
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 1.08rem;
+            margin-bottom: 0.75rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-panel .hero-synopsis {
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 1.04rem;
+            line-height: 1.62;
+            max-width: 66ch;
+            margin-bottom: 1.45rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-panel .hero-buttons {
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .featured-hero .hero-buttons .btn {
+            min-height: 46px;
+            padding: 0.8rem 1.35rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 768px) {
+            .featured-hero {
+                min-height: 72vh;
+            }
+
+            .featured-hero .hero-slide {
+                min-height: 72vh;
+            }
+
+            .featured-hero .hero-content.featured-hero-content {
+                min-height: 74vh;
+                width: 100%;
+                padding: 0 1rem;
+            }
+
+            .featured-hero .hero-panel.featured-hero-panel {
+                width: 100%;
+                padding: 1.55rem 1.15rem;
+                border-radius: 14px;
+            }
+
+            .featured-hero .hero-badge {
+                margin-bottom: 0.8rem;
+            }
+
+            .hero-panel .hero-title {
+                font-size: clamp(1.8rem, 7vw, 2.5rem);
+                margin-bottom: 0.65rem;
+            }
+
+            .hero-panel .hero-description {
+                font-size: 0.95rem;
+            }
+
+            .hero-panel .hero-synopsis {
+                font-size: 0.92rem;
+                line-height: 1.5;
+                margin-bottom: 1rem;
+            }
+
+            .featured-hero .hero-buttons .btn {
+                min-height: 42px;
+                padding: 0.7rem 1rem;
+                font-size: 0.88rem;
+            }
+        }
+
+        .hero-carousel-dots {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 1.2rem;
+            z-index: 3;
+            display: flex;
+            justify-content: center;
+            gap: 0.45rem;
+        }
+
+        .hero-carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+        }
+
+        .hero-carousel-dot.is-active {
+            background: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+        }
+
+        .category-card {
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+
+        .house-btn.active-house {
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
     </style>
 </head>
@@ -583,24 +651,45 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
     <div class="container header-content">
         <div class="logo">
             <div class="row">
-                <img src="<?php echo htmlspecialchars($current_house['logo_img']); ?>" alt="Logo de <?php echo htmlspecialchars($current_house['name']); ?>" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="logo-fa-fallback" style="display: none;">
-                    <i class="fas <?php echo htmlspecialchars($current_house['icon']); ?>"></i>
+                <img src="<?php echo $themeEnabled ? htmlspecialchars($current_house['logo_img']) : ''; ?>" alt="Logo principal de Hogwarts" class="logo-img" style="<?php echo $themeEnabled ? '' : 'display:none;'; ?>" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fa-fallback" style="display: <?php echo $themeEnabled ? 'none' : 'flex'; ?>;">
+                    <i class="fas <?php echo $themeEnabled ? htmlspecialchars($current_house['icon']) : 'fa-hat-wizard'; ?>"></i>
                 </div>
-                <h1><?php echo strtoupper(htmlspecialchars($current_house['name'])); ?> LIBRARIES</h1>
+                <div>
+                    <h1><?php echo $brandTitle; ?></h1>
+                    <span class="logo-brand-core">
+                        <?php echo $themeEnabled ? 'Tema: ' . htmlspecialchars($current_house['name']) : 'Tema clásico'; ?>
+                    </span>
+                </div>
             </div>
         </div>
 
         <nav class="nav-menu">
             <ul>
-                <li><a href="#" class="active">Inicio</a></li>
-                <li><a href="#">Explorar</a></li>
-                <li><a href="#">Mi lista</a></li>
-                <li><a href="#">Categorías</a></li>
-                <li><a href="<?php echo e($baseUrl . '/src/views/admin/dashboard.php'); ?>">Admin</a></li>
+                <li><a href="index.php" class="active">Inicio</a></li>
+                <li><a href="explorar.php">Explorar</a></li>
+                <li><a href="mi-lista.php">Mi lista</a></li>
+                <li><a href="categorias.php">Categorías</a></li>
+                <li><a href="perfil.php">Perfil</a></li>
+                <?php if (strtolower((string) ($_SESSION['user_role'] ?? 'usuario')) === 'admin'): ?>
+                    <li><a href="<?php echo e($baseUrl . '/src/views/admin/dashboard.php'); ?>">Admin</a></li>
+                <?php endif; ?>
+                <?php if ($themeEnabled): ?>
+                    <li class="theme-switch-inline">
+                        <i class="fas fa-palette" style="font-size:0.8rem;opacity:0.8;"></i>
+                        <form method="GET" action="" style="display:inline;">
+                            <select name="house" onchange="this.form.submit()">
+                                <option value="ravenclaw" <?= $house === 'ravenclaw' ? 'selected' : ''; ?>>Ravenclaw</option>
+                                <option value="gryffindor" <?= $house === 'gryffindor' ? 'selected' : ''; ?>>Gryffindor</option>
+                                <option value="slytherin" <?= $house === 'slytherin' ? 'selected' : ''; ?>>Slytherin</option>
+                                <option value="hufflepuff" <?= $house === 'hufflepuff' ? 'selected' : ''; ?>>Hufflepuff</option>
+                            </select>
+                        </form>
+                    </li>
+                <?php endif; ?>
                 <li class="user-nav-item">
                     <div class="user-menu">
-                        <span class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></span>
+                        <a href="perfil.php" class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></a>
                         <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
                     </div>
                 </li>
@@ -610,64 +699,69 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
 </header>
 
 <main>
-    <section class="hero">
-        <div class="container hero-content">
-            <?php if ($featuredBook): ?>
-                <span class="hero-badge">Destacado de la biblioteca</span>
-                <h1 class="hero-title"><?php echo e($featuredBook['title']); ?></h1>
-                <p class="hero-description">
-                    <?php echo e($featuredBook['author']); ?> ·
-                    <?php echo e($featuredBook['category']); ?> ·
-                    <?php echo e($featuredBook['pages']); ?>
-                </p>
-                <p class="hero-synopsis"><?php echo e($featuredBook['description']); ?></p>
-                <div class="hero-buttons">
-                    <a href="#"
-                       class="btn btn-primary js-book-preview"
-                       data-title="<?php echo e($featuredBook['title']); ?>"
-                       data-author="<?php echo e($featuredBook['author']); ?>"
-                       data-description="<?php echo e($featuredBook['description']); ?>"
-                       data-category="<?php echo e($featuredBook['category']); ?>"
-                       data-year="<?php echo e($featuredBook['year']); ?>"
-                       data-pages="<?php echo e($featuredBook['pages']); ?>"
-                       data-pdf="<?php echo e($featuredBook['pdf']); ?>"
-                       data-reader="<?php echo e($featuredBook['reader']); ?>"
-                       data-cover="<?php echo e($featuredBook['cover']); ?>"
-                       data-banner="<?php echo e($featuredBook['banner']); ?>"
-                       data-tags="<?php echo e($featuredBook['tags']); ?>">
-                        Vista previa
-                    </a>
-                    <a href="<?php echo e($featuredBook['reader']); ?>" class="btn btn-secondary">Comenzar lectura</a>
-                </div>
-            <?php else: ?>
-                <span class="hero-badge">Biblioteca digital</span>
-                <h1 class="hero-title">Catálogo sin obras disponibles</h1>
-                <p class="hero-description">Agrega archivos PDF en la carpeta assets/books para mostrarlos en la biblioteca.</p>
-            <?php endif; ?>
-        </div>
-    </section>
-
-    <?php if (!empty($dbBooks)): ?>
-    <section class="row-section" id="catalogo">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title">De la biblioteca</h2>
-                <a href="#catalogo" class="view-all">Ver todo</a>
-            </div>
-            <div class="books-carousel">
-                <?php foreach ($dbBooks as $book): ?>
-                    <?php renderBookCard($book); ?>
+    <section class="featured-hero" id="heroCarousel">
+        <?php if (!empty($featuredSlides)): ?>
+            <?php foreach ($featuredSlides as $index => $slideBook): ?>
+                <article class="hero-slide <?php echo $index === 0 ? 'is-active' : ''; ?>" style="<?php echo !empty($slideBook['banner']) ? 'background-image:url(\'' . e($slideBook['banner']) . '\');' : ''; ?>">
+                    <div class="hero-overlay"></div>
+                    <div class="hero-content featured-hero-content">
+                        <div class="hero-panel featured-hero-panel">
+                            <span class="hero-badge">Destacado de la biblioteca</span>
+                            <h1 class="hero-title"><?php echo e($slideBook['title']); ?></h1>
+                            <p class="hero-description">
+                                <?php echo e($slideBook['author']); ?> ·
+                                <?php echo e($slideBook['category']); ?> ·
+                                <?php echo e($slideBook['pages']); ?>
+                            </p>
+                            <p class="hero-synopsis"><?php echo e($slideBook['description']); ?></p>
+                            <div class="hero-buttons">
+                                <a href="#"
+                                   class="btn btn-primary js-book-preview"
+                                   data-title="<?php echo e($slideBook['title']); ?>"
+                                   data-author="<?php echo e($slideBook['author']); ?>"
+                                   data-description="<?php echo e($slideBook['description']); ?>"
+                                   data-category="<?php echo e($slideBook['category']); ?>"
+                                   data-year="<?php echo e($slideBook['year']); ?>"
+                                   data-pages="<?php echo e($slideBook['pages']); ?>"
+                                   data-pdf="<?php echo e($slideBook['pdf']); ?>"
+                                   data-reader="<?php echo e($slideBook['reader']); ?>"
+                                   data-file="<?php echo e($slideBook['file'] ?? ''); ?>"
+                                   data-type="<?php echo e($slideBook['type'] ?? 'pdf'); ?>"
+                                   data-cover="<?php echo e($slideBook['cover']); ?>"
+                                   data-banner="<?php echo e($slideBook['banner']); ?>"
+                                   data-tags="<?php echo e($slideBook['tags']); ?>">
+                                    Vista previa
+                                </a>
+                                <a href="<?php echo e($slideBook['reader']); ?>" class="btn btn-secondary">Comenzar lectura</a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <div class="hero-carousel-dots" id="heroCarouselDots">
+                <?php foreach ($featuredSlides as $index => $slideBook): ?>
+                    <button type="button" class="hero-carousel-dot <?php echo $index === 0 ? 'is-active' : ''; ?>" aria-label="Destacado <?php echo $index + 1; ?>"></button>
                 <?php endforeach; ?>
             </div>
-        </div>
+        <?php else: ?>
+            <article class="hero-slide is-active">
+                <div class="hero-overlay"></div>
+                <div class="hero-content featured-hero-content">
+                    <div class="hero-panel featured-hero-panel">
+                        <span class="hero-badge">Biblioteca digital</span>
+                        <h1 class="hero-title">Catálogo sin obras disponibles</h1>
+                        <p class="hero-description">Agrega archivos PDF en la carpeta assets/books para mostrarlos en la biblioteca.</p>
+                    </div>
+                </div>
+            </article>
+        <?php endif; ?>
     </section>
-    <?php endif; ?>
 
     <section class="row-section" id="catalogo-pdf">
         <div class="container">
             <div class="section-header">
                 <h2 class="section-title">Catálogo destacado</h2>
-                <a href="#catalogo-pdf" class="view-all">Ver todo</a>
+                <a href="explorar.php" class="view-all">Ver todo</a>
             </div>
 
             <?php if (!empty($bookSections[0])): ?>
@@ -689,7 +783,7 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
             <div class="container">
                 <div class="section-header">
                     <h2 class="section-title">Recomendados</h2>
-                    <a href="#catalogo" class="view-all">Ver todo</a>
+                    <a href="explorar.php" class="view-all">Ver todo</a>
                 </div>
 
                 <div class="books-carousel">
@@ -706,7 +800,7 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
             <div class="container">
                 <div class="section-header">
                     <h2 class="section-title">Clásicos</h2>
-                    <a href="#catalogo" class="view-all">Ver todo</a>
+                    <a href="explorar.php" class="view-all">Ver todo</a>
                 </div>
 
                 <div class="books-carousel">
@@ -722,16 +816,17 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
         <div class="container">
             <h2 class="section-title">Explora por categorías</h2>
             <div class="categories-grid">
-                <div class="category-card">Clásicos</div>
-                <div class="category-card">Ciencia ficción</div>
-                <div class="category-card">Misterio</div>
-                <div class="category-card">Romance</div>
-                <div class="category-card">Terror</div>
-                <div class="category-card">Filosofía</div>
+                <a href="categorias.php" class="category-card">Clásicos</a>
+                <a href="categorias.php" class="category-card">Ciencia ficción</a>
+                <a href="categorias.php" class="category-card">Misterio</a>
+                <a href="categorias.php" class="category-card">Romance</a>
+                <a href="categorias.php" class="category-card">Terror</a>
+                <a href="categorias.php" class="category-card">Filosofía</a>
             </div>
         </div>
     </section>
 
+    <?php if ($themeEnabled): ?>
     <section class="house-selector-section">
         <div class="container">
             <h2 class="section-title">Cambiar casa de Hogwarts</h2>
@@ -751,6 +846,7 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
             </div>
         </div>
     </section>
+    <?php endif; ?>
 </main>
 
 <div class="book-preview-backdrop" id="bookPreviewBackdrop" aria-hidden="true">
@@ -765,7 +861,7 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
                 <p class="book-preview-author" id="bookPreviewAuthor">Autor</p>
                 <div class="book-preview-actions">
                    <a href="#" class="book-preview-read-btn" id="bookPreviewReadBtn">Comenzar lectura</a>
-                    <button type="button" class="book-preview-list-btn">Mi lista</button>
+                    <button type="button" class="book-preview-list-btn" id="bookPreviewFavoriteBtn">Mi lista</button>
                 </div>
             </div>
         </div>
@@ -798,34 +894,82 @@ $bookSections = array_chunk($pdfBooksFiltered, 5);
     <div class="container">
         <div class="footer-content">
             <div class="footer-col">
-                <h4><?php echo e($current_house['name']); ?> Libraries</h4>
-                <p>Streaming de libros gratuito.<br>Obras digitales disponibles para lectura.</p>
+                <h4>Hogwarts</h4>
+                <p>Hogwarts · Biblioteca digital.<br>Obras disponibles para lectura continua.</p>
             </div>
             <div class="footer-col">
                 <h4>Explorar</h4>
                 <ul>
-                    <li><a href="#catalogo">Catálogo</a></li>
-                    <li><a href="#categorias">Categorías</a></li>
-                    <li><a href="#">Mi lista</a></li>
+                    <li><a href="explorar.php">Explorar</a></li>
+                    <li><a href="categorias.php">Categorías</a></li>
+                    <li><a href="mi-lista.php">Mi lista</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h4>Soporte</h4>
                 <ul>
-                    <li><a href="#">Preguntas frecuentes</a></li>
-                    <li><a href="#">Contacto</a></li>
-                    <li><a href="#">Términos</a></li>
+                    <li><a href="faq.php">Preguntas frecuentes</a></li>
+                    <li><a href="contacto.php">Contacto</a></li>
+                    <li><a href="terminos.php">Términos</a></li>
                 </ul>
             </div>
         </div>
         <div class="copyright">
-            <p>© <?php echo date('Y'); ?> <?php echo htmlspecialchars($current_house['name']); ?> Libraries · Casa <?php echo htmlspecialchars($current_house['name']); ?></p>
+            <p>© <?php echo date('Y'); ?> Hogwarts · <?php echo $themeEnabled ? 'Tema ' . htmlspecialchars($current_house['name']) : 'Tema clásico'; ?></p>
         </div>
     </div>
 </footer>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const heroCarousel = document.getElementById('heroCarousel');
+    const heroDotsWrap = document.getElementById('heroCarouselDots');
+
+    if (heroCarousel && heroDotsWrap) {
+        const slides = Array.from(heroCarousel.querySelectorAll('.hero-slide'));
+        const dots = Array.from(heroDotsWrap.querySelectorAll('.hero-carousel-dot'));
+        let current = 0;
+        let autoRotate = null;
+
+        function showSlide(index) {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('is-active', idx === index);
+            });
+
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('is-active', idx === index);
+            });
+
+            current = index;
+        }
+
+        if (slides.length > 0) {
+            showSlide(0);
+        }
+
+        function startAutoRotate() {
+            if (autoRotate) {
+                clearInterval(autoRotate);
+            }
+
+            autoRotate = setInterval(() => {
+                const next = (current + 1) % slides.length;
+                showSlide(next);
+            }, 5500);
+        }
+
+        dots.forEach((dot, idx) => {
+            dot.addEventListener('click', () => {
+                showSlide(idx);
+                startAutoRotate();
+            });
+        });
+
+        if (slides.length > 1) {
+            startAutoRotate();
+        }
+    }
+
     const backdrop = document.getElementById('bookPreviewBackdrop');
     const closeBtn = document.getElementById('bookPreviewClose');
 
@@ -847,6 +991,49 @@ document.addEventListener('DOMContentLoaded', function () {
     const description = document.getElementById('bookPreviewDescription');
     const tags = document.getElementById('bookPreviewTags');
     const readBtn = document.getElementById('bookPreviewReadBtn');
+    const favoriteBtn = document.getElementById('bookPreviewFavoriteBtn');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const apiUrl = '<?php echo e(app_url('src/controllers/library_api.php')); ?>';
+    let activeBookPayload = null;
+
+    function buildBookPayload(data) {
+        return {
+            file: data.file || '',
+            title: data.title || '',
+            author: data.author || '',
+            description: data.description || '',
+            type: data.type || 'pdf'
+        };
+    }
+
+    async function refreshFavoriteButton(payload) {
+        if (!favoriteBtn || !payload) {
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                action: 'favorite_status',
+                file: payload.file,
+                title: payload.title,
+                author: payload.author,
+                description: payload.description,
+                type: payload.type
+            });
+
+            const response = await fetch(apiUrl + '?' + params.toString(), { credentials: 'same-origin' });
+            const result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                favoriteBtn.textContent = 'Mi lista';
+                return;
+            }
+
+            favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
+        } catch (error) {
+            favoriteBtn.textContent = 'Mi lista';
+        }
+    }
 
     function setText(element, value, fallback) {
         if (!element) {
@@ -863,6 +1050,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const bookPdf = data.pdf || '';
         const bookReader = data.reader || '';
         const bookCover = data.cover || '';
+        activeBookPayload = buildBookPayload(data);
 
         setText(title, bookTitle, 'Obra sin identificar');
         setText(author, data.author, 'Autor no especificado');
@@ -936,6 +1124,8 @@ document.addEventListener('DOMContentLoaded', function () {
             readBtn.style.opacity = '0.55';
         }
 
+        refreshFavoriteButton(activeBookPayload);
+
         backdrop.classList.add('is-open');
         backdrop.setAttribute('aria-hidden', 'false');
         document.body.classList.add('preview-open');
@@ -963,6 +1153,48 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     closeBtn.addEventListener('click', closePreview);
+
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', async function () {
+            if (!activeBookPayload || !csrfToken) {
+                return;
+            }
+
+            const payload = new URLSearchParams({
+                action: 'toggle_favorite',
+                csrf_token: csrfToken,
+                file: activeBookPayload.file,
+                title: activeBookPayload.title,
+                author: activeBookPayload.author,
+                description: activeBookPayload.description,
+                type: activeBookPayload.type
+            });
+
+            favoriteBtn.disabled = true;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: payload.toString()
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.ok) {
+                    throw new Error('No se pudo actualizar favoritos.');
+                }
+
+                favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
+            } catch (error) {
+                alert('No se pudo actualizar tu lista en este momento.');
+            } finally {
+                favoriteBtn.disabled = false;
+            }
+        });
+    }
 
     backdrop.addEventListener('click', function (event) {
         if (event.target === backdrop) {

@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../models/BookModel.php';
 require_once __DIR__ . '/../models/OpenLibraryService.php';
+require_once __DIR__ . '/../lib/Auth.php';
+require_once __DIR__ . '/../lib/App.php';
 
 class BookController
 {
@@ -88,6 +90,8 @@ class BookController
 
     private function handlePostAction(): void
     {
+        require_valid_csrf();
+
         $action = $_POST['action'] ?? '';
 
         try {
@@ -267,7 +271,7 @@ class BookController
 
         $this->storeUploadedFile($tmpName, $destinationPath, 'la imagen del banner');
 
-        $payload['imagen'] = '/Muggle/assets/banners/' . $fileName;
+        $payload['imagen'] = app_url('assets/banners/' . $fileName);
     }
 
     private function setFlash(string $message, string $type): void

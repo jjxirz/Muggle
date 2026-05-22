@@ -44,7 +44,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Libro más leído</div>
-                <div class="stat-value" style="font-size: 1.1rem"><?= $libroTop ?? 'IT (Eso)' ?></div>
+                <div class="stat-value topbar-muted-value"><?= $libroTop ?? 'IT (Eso)' ?></div>
                 <div class="stat-sub stat-sub--neutral">43 lecturas</div>
             </div>
         </div>

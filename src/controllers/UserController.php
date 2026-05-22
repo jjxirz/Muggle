@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../lib/Auth.php';
 
 class UserController
 {
@@ -26,6 +27,8 @@ class UserController
 
     private function handlePost(): void
     {
+        require_valid_csrf();
+
         $action = $_POST['action'] ?? '';
 
         try {

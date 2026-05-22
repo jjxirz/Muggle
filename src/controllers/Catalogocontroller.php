@@ -1,6 +1,7 @@
 <?php
 
-require_once __DIR__ . '/../models/CatalogoModel.php';
+require_once __DIR__ . '/../models/Catalogomodel.php';
+require_once __DIR__ . '/../lib/Auth.php';
 
 class CatalogoController
 {
@@ -63,6 +64,8 @@ class CatalogoController
 
     private function handlePost(): void
     {
+        require_valid_csrf();
+
         $action = trim((string) ($_POST['action'] ?? ''));
 
         try {

@@ -239,9 +239,10 @@ body.sidebar-collapsed .admin-main {
     background: var(--color-white);
     border-bottom: 0.5px solid var(--color-gris-pale);
     padding: 0 24px;
-    height: var(--topbar-height);
+    min-height: var(--topbar-height);
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 12px;
     position: sticky;
     top: 0;
@@ -265,8 +266,44 @@ body.sidebar-collapsed .admin-main {
 .topbar-actions {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
     margin-left: auto;
+}
+
+.sidebar-floating-toggle {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 200;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888780;
+    font-size: 16px;
+    padding: 0;
+    transition: color 0.22s ease;
+}
+
+.sidebar-floating-toggle:hover {
+    color: var(--color-crema-light);
+}
+
+.topbar-muted-value {
+    font-size: 1.1rem !important;
+}
+
+.toolbar-gap-sm {
+    gap: 0.5rem;
+}
+
+.search-box--compact {
+    max-width: 280px;
 }
 
 /* =====================================================
@@ -1035,6 +1072,15 @@ body.sidebar-collapsed .admin-footer {
 
     .admin-content { padding: 14px; }
     .topbar-title  { font-size: 14px; }
+    .admin-topbar {
+        padding: 10px 14px;
+        height: auto;
+        align-items: flex-start;
+    }
+    .topbar-actions {
+        margin-left: 0;
+        width: 100%;
+    }
     .stats-row     { grid-template-columns: 1fr 1fr; }
 }
 

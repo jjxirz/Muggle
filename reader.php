@@ -1,13 +1,19 @@
 <?php
-session_start();
+require_once __DIR__ . '/src/lib/Auth.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
+require_login();
+
+$baseUrl = app_base_url();
+$assetUrl = $baseUrl . '/assets';
+$themeEnabled = (bool) ($_SESSION['theme_enabled'] ?? true);
+$house = $_GET['house'] ?? $_SESSION['selected_house'] ?? 'ravenclaw';
+$validHouses = ['ravenclaw', 'gryffindor', 'slytherin', 'hufflepuff'];
+
+if (!$themeEnabled || !in_array($house, $validHouses, true)) {
+    $house = 'ravenclaw';
 }
 
-$baseUrl = '/Muggle';
-$assetUrl = $baseUrl . '/assets';
+$_SESSION['selected_house'] = $house;
 
 function e(mixed $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
@@ -49,21 +55,57 @@ $pdfUrl = $isValidBook ? $assetUrl . '/books/' . rawurlencode($book) : '';
     <title><?php echo e($bookTitle); ?> | Lector</title>
 
     <link rel="stylesheet" href="<?php echo $assetUrl; ?>/css/reader.css">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
 </head>
 
 <body>
-    <header class="reader-header">
-        <div class="reader-brand">
-            <a href="<?php echo $baseUrl; ?>/index.php" class="reader-back">← Volver</a>
+    <aside class="reader-sidebar" id="readerSidebar">
+        <a href="<?php echo $baseUrl; ?>/index.php?house=<?php echo e($house); ?>" class="reader-back" title="Volver al catálogo" data-tip="Volver al catálogo">
+            <span class="reader-side-icon">←</span>
+            <span class="reader-side-label">Volver</span>
+        </a>
 
-            <div>
-                <h1><?php echo e($bookTitle); ?></h1>
-                <p>Modo lectura</p>
+        <button type="button" id="fullscreenBtn" class="reader-side-action" title="Maximizar visor" data-tip="Pantalla completa (F)">
+            <span class="reader-side-icon" id="fullscreenIcon">⛶</span>
+            <span class="reader-side-label" id="fullscreenLabel">Maximizar</span>
+        </button>
+
+        <button type="button" id="viewModeBtn" class="reader-side-action" title="Cambiar vista" data-tip="Cambiar a 1 pagina">
+            <span class="reader-side-icon" id="viewModeIcon">2</span>
+            <span class="reader-side-label">Vista</span>
+        </button>
+
+        <div class="reader-side-center" aria-label="Navegación de páginas">
+            <div class="reader-page-counter">
+                <input type="number" id="currentPage" class="reader-page-input" min="1" step="1" value="1" aria-label="Página actual" title="Escribe una página y presiona Enter" data-tip="Escribe número y Enter">
+                <span class="reader-page-separator">/</span>
+                <span id="totalPages">0</span>
             </div>
+
+            <div class="reader-page-jump" aria-label="Control de página">
+            <button type="button" id="prevPageBtn" class="reader-side-nav" aria-label="Página anterior" title="Página anterior" data-tip="Página anterior (←)">❮</button>
+            <button type="button" id="nextPageBtn" class="reader-side-nav" aria-label="Página siguiente" title="Página siguiente" data-tip="Página siguiente (→)">❯</button>
+            </div>
+
+            <div class="reader-page-progress" id="readerPercent">0%</div>
         </div>
 
-        
-    </header>
+        <button type="button" id="ttsToggleBtn" class="reader-side-action" title="Opciones de lectura" data-tip="Opciones de lectura">
+            <span class="reader-side-icon">🔊</span>
+            <span class="reader-side-label">Lectura</span>
+        </button>
+
+        <button type="button" id="shortcutsToggle" class="reader-side-action" title="Ver atajos" data-tip="Ver/Ocultar atajos">
+            <span class="reader-side-icon">⌨</span>
+            <span class="reader-side-label">Atajos</span>
+        </button>
+
+        <div id="shortcutsHelp" class="reader-shortcuts" aria-hidden="true">
+            <div class="reader-shortcuts-title">Atajos</div>
+            <div class="reader-shortcuts-item">← / → pagina</div>
+            <div class="reader-shortcuts-item">F fullscreen</div>
+        </div>
+    </aside>
 
     <main class="reader-main">
         <?php if (!$isValidBook): ?>
@@ -73,16 +115,6 @@ $pdfUrl = $isValidBook ? $assetUrl . '/books/' . rawurlencode($book) : '';
                 <a href="<?php echo $baseUrl; ?>/index.php">Regresar al catálogo</a>
             </section>
         <?php else: ?>
-            <section class="reader-toolbar">
-                <button type="button" id="prevPageBtn"><</button>
-
-                <div class="reader-page-info">
-                    Página <span id="currentPage">1</span> de <span id="totalPages">0</span>
-                </div>
-
-                <button type="button" id="nextPageBtn">></button>
-            </section>
-
             <section class="reader-loading" id="readerLoading">
                 <div class="reader-loading-card">
                     <div class="reader-book-loader">
@@ -120,18 +152,34 @@ $pdfUrl = $isValidBook ? $assetUrl . '/books/' . rawurlencode($book) : '';
         <?php endif; ?>
     </main>
 
+    <section id="ttsFloatingPanel" class="reader-tts-panel" aria-hidden="true" aria-label="Opciones de lectura">
+        <div class="reader-tts-panel-title">Lectura en voz (prueba)</div>
+
+        <div class="reader-tts-panel-actions">
+            <button type="button" id="ttsReadBtn" class="reader-tts-btn">Leer pagina</button>
+            <button type="button" id="ttsStopBtn" class="reader-tts-btn">Detener</button>
+            <button type="button" id="ttsCloseBtn" class="reader-tts-btn reader-tts-btn-secondary">Cerrar</button>
+        </div>
+    </section>
+
+    <div id="ttsToast" class="reader-tts-toast" aria-live="polite" aria-atomic="true"></div>
+
     <?php if ($isValidBook): ?>
         <script>
             window.READER_CONFIG = {
                 pdfUrl: "<?php echo e($pdfUrl); ?>",
                 workerUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
-                title: "<?php echo e($bookTitle); ?>"
+                title: "<?php echo e($bookTitle); ?>",
+                file: "<?php echo e('assets/books/' . $book); ?>",
+                apiUrl: "<?php echo e(app_url('src/controllers/library_api.php')); ?>",
+                csrfToken: "<?php echo e(csrf_token()); ?>"
             };
         </script>
 
         <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.min.js"></script>
         <script src="<?php echo $assetUrl; ?>/js/reader.js"></script>
+        <script src="<?php echo $assetUrl; ?>/js/reader-tts.js"></script>
     <?php endif; ?>
 </body>
 </html>

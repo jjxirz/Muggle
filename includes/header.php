@@ -11,6 +11,7 @@ if (!function_exists('h')) {
 
 $page_title = $page_title ?? 'Hogwarts Libraries';
 $active_page = $active_page ?? '';
+$theme_enabled = (bool) ($_SESSION['theme_enabled'] ?? true);
 
 $house = $_GET['house'] ?? $_SESSION['selected_house'] ?? 'ravenclaw';
 
@@ -27,41 +28,53 @@ $houses_config = [
         'name' => 'Ravenclaw',
         'icon' => 'fa-feather-alt',
         'logo_img' => 'assets/img/ravenclaw.jpg',
-        'color' => '#0e1a2b',
-        'secondary' => '#5f7f9e',
-        'highlight' => '#cdb57c',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3b7d6',
         'text_color' => '#ffffff'
     ],
     'gryffindor' => [
         'name' => 'Gryffindor',
         'icon' => 'fa-shield-alt',
         'logo_img' => 'assets/img/gryffindor.jpg',
-        'color' => '#541011',
-        'secondary' => '#7a1d1f',
-        'highlight' => '#eeba30',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6a3a3',
         'text_color' => '#ffffff'
     ],
     'slytherin' => [
         'name' => 'Slytherin',
         'icon' => 'fa-dragon',
         'logo_img' => 'assets/img/slytherin.jpg',
-        'color' => '#1a472a',
-        'secondary' => '#2a623d',
-        'highlight' => '#c8c8c8',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3d6b7',
         'text_color' => '#ffffff'
     ],
     'hufflepuff' => [
         'name' => 'Hufflepuff',
         'icon' => 'fa-seedling',
         'logo_img' => 'assets/img/hufflepuff.jpg',
-        'color' => '#806216',
-        'secondary' => '#9a7923',
-        'highlight' => '#f0c75e',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6c6a3',
         'text_color' => '#ffffff'
     ]
 ];
 
 $current_house = $houses_config[$house];
+
+if (!$theme_enabled) {
+    $current_house = [
+        'name' => 'Hogwarts',
+        'icon' => 'fa-hat-wizard',
+        'logo_img' => '',
+        'color' => '#111110',
+        'secondary' => '#5f5e5a',
+        'highlight' => '#f5f4f0',
+        'text_color' => '#ffffff',
+    ];
+}
 
 $user_name = $_SESSION['user_name'] ?? 'Usuario';
 $user_email = $_SESSION['user_email'] ?? '';
@@ -78,7 +91,7 @@ function activeClass($page, $active_page) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= h($page_title); ?> | <?= h($current_house['name']); ?> Libraries</title>
+    <title><?= h($page_title); ?> | Hogwarts</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
@@ -151,6 +164,18 @@ function activeClass($page, $active_page) {
         .profile-side-card {
             background-color: var(--house-primary) !important;
         }
+
+        .category-card {
+            color: var(--house-text) !important;
+            text-decoration: none !important;
+        }
+
+        .house-btn.active-house {
+            background-color: var(--house-highlight) !important;
+            color: var(--house-primary) !important;
+            border-color: var(--house-highlight) !important;
+        }
+
     </style>
 </head>
 
@@ -164,6 +189,7 @@ function activeClass($page, $active_page) {
                     src="<?= h($current_house['logo_img']); ?>"
                     alt="Logo de <?= h($current_house['name']); ?>"
                     class="logo-img"
+                    style="<?= $current_house['logo_img'] === '' ? 'display:none;' : ''; ?>"
                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 >
 
@@ -172,8 +198,10 @@ function activeClass($page, $active_page) {
                 </div>
 
                 <div>
-                    <h1><?= strtoupper(h($current_house['name'])); ?> LIBRARIES</h1>
-                    <span class="logo-subtitle">Streaming de libros mágicos</span>
+                    <h1>HOGWARTS</h1>
+                    <span class="logo-subtitle">
+                        <?= $theme_enabled ? 'Tema ' . h($current_house['name']) : 'Tema clásico'; ?>
+                    </span>
                 </div>
             </div>
         </a>
@@ -187,22 +215,36 @@ function activeClass($page, $active_page) {
                 </li>
 
                 <li>
-                    <a href="#" class="<?= activeClass('explorar', $active_page); ?>">
+                    <a href="explorar.php" class="<?= activeClass('explorar', $active_page); ?>">
                         Explorar
                     </a>
                 </li>
 
                 <li>
-                    <a href="#" class="<?= activeClass('mi-lista', $active_page); ?>">
+                    <a href="mi-lista.php" class="<?= activeClass('mi-lista', $active_page); ?>">
                         Mi lista
                     </a>
                 </li>
 
                 <li>
-                    <a href="#" class="<?= activeClass('categorias', $active_page); ?>">
+                    <a href="categorias.php" class="<?= activeClass('categorias', $active_page); ?>">
                         Categorías
                     </a>
                 </li>
+
+                <?php if ($theme_enabled): ?>
+                    <li class="theme-switch-inline">
+                        <i class="fas fa-palette theme-switch-icon"></i>
+                        <form method="GET" action="" class="theme-switch-form">
+                            <select name="house" onchange="this.form.submit()">
+                                <option value="ravenclaw" <?= $house === 'ravenclaw' ? 'selected' : ''; ?>>Ravenclaw</option>
+                                <option value="gryffindor" <?= $house === 'gryffindor' ? 'selected' : ''; ?>>Gryffindor</option>
+                                <option value="slytherin" <?= $house === 'slytherin' ? 'selected' : ''; ?>>Slytherin</option>
+                                <option value="hufflepuff" <?= $house === 'hufflepuff' ? 'selected' : ''; ?>>Hufflepuff</option>
+                            </select>
+                        </form>
+                    </li>
+                <?php endif; ?>
 
                 <li>
                     <a href="perfil.php" class="<?= activeClass('perfil', $active_page); ?>">
@@ -212,10 +254,10 @@ function activeClass($page, $active_page) {
 
                 <li class="user-nav-item">
                     <div class="user-menu">
-                        <span class="user-name">
+                        <a href="perfil.php" class="user-name">
                             <i class="fas fa-user-circle"></i>
                             <?= h($user_name); ?>
-                        </span>
+                        </a>
 
                         <a href="logout.php" class="logout-btn">
                             <i class="fas fa-sign-out-alt"></i>

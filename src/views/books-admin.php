@@ -203,6 +203,7 @@ include __DIR__ . '/layouts/sidebar.php';
         <div class="card">
             <h2><?= $isEditing ? 'Editar libro' : 'Nuevo libro' ?></h2>
             <form method="POST" action="admin_books.php" enctype="multipart/form-data">
+                <?php echo csrf_input(); ?>
                 <input type="hidden" name="action" value="<?= $isEditing ? 'update' : 'create' ?>">
                 <?php if ($isEditing): ?>
                     <input type="hidden" name="id_libro" value="<?= (int) $book['id_libro'] ?>">
@@ -333,6 +334,7 @@ include __DIR__ . '/layouts/sidebar.php';
                                     <div class="actions">
                                         <a class="btn-icon btn-icon-edit" href="admin_books.php?action=edit&id=<?= (int) $row['id_libro'] ?>" title="Editar"><i class="fas fa-pencil-alt"></i></a>
                                         <form method="POST" action="admin_books.php" onsubmit="return confirm('¿Seguro que quieres eliminar este libro?');" style="display:inline;">
+                                            <?php echo csrf_input(); ?>
                                             <input type="hidden" name="action" value="delete">
                                             <input type="hidden" name="id_libro" value="<?= (int) $row['id_libro'] ?>">
                                             <button class="btn-icon btn-icon-delete" type="submit" title="Eliminar"><i class="fas fa-trash"></i></button>
@@ -357,6 +359,31 @@ const metadataLookupBtn = document.getElementById('metadataLookupBtn');
 const titleInput = document.getElementById('titulo');
 const titleSuggestions = document.getElementById('titleSuggestions');
 
+function applyMetadata(data) {
+    if (!data || typeof data !== 'object') {
+        return;
+    }
+
+    if (data.isbn) document.getElementById('isbn').value = data.isbn;
+    if (data.doi) document.getElementById('doi').value = data.doi;
+    if (data.titulo) document.getElementById('titulo').value = data.titulo;
+    if (data.autor) document.getElementById('autor').value = data.autor;
+    if (data.descripcion) document.getElementById('descripcion').value = data.descripcion;
+    if (data.portada) document.getElementById('portada').value = data.portada;
+    if (data.fecha_publicado) document.getElementById('fecha_publicado').value = data.fecha_publicado;
+}
+
+async function fetchAndApplyMetadata(identifier, mode) {
+    const response = await fetch(`admin_books.php?action=fetch_metadata&mode=${encodeURIComponent(mode)}&identifier=${encodeURIComponent(identifier)}`);
+    const payload = await response.json();
+
+    if (!response.ok || !payload.ok) {
+        throw new Error(payload.message || 'No se encontro informacion.');
+    }
+
+    applyMetadata(payload.data);
+}
+
 metadataLookupBtn.addEventListener('click', async () => {
     const identifier = identifierInput.value.trim();
     const mode = identifierModeInput.value;
@@ -370,21 +397,7 @@ metadataLookupBtn.addEventListener('click', async () => {
     metadataLookupBtn.textContent = 'Buscando...';
 
     try {
-        const response = await fetch(`admin_books.php?action=fetch_metadata&mode=${encodeURIComponent(mode)}&identifier=${encodeURIComponent(identifier)}`);
-        const payload = await response.json();
-
-        if (!response.ok || !payload.ok) {
-            throw new Error(payload.message || 'No se encontro informacion.');
-        }
-
-        const data = payload.data;
-        if (data.isbn) document.getElementById('isbn').value = data.isbn;
-        if (data.doi) document.getElementById('doi').value = data.doi;
-        if (data.titulo) document.getElementById('titulo').value = data.titulo;
-        if (data.autor) document.getElementById('autor').value = data.autor;
-        if (data.descripcion) document.getElementById('descripcion').value = data.descripcion;
-        if (data.portada) document.getElementById('portada').value = data.portada;
-        if (data.fecha_publicado) document.getElementById('fecha_publicado').value = data.fecha_publicado;
+        await fetchAndApplyMetadata(identifier, mode);
     } catch (error) {
         alert(error.message || 'No fue posible consultar metadata del libro.');
     } finally {

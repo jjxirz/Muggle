@@ -1,19 +1,10 @@
 <?php
-// ── Bootstrap ────────────────────────────────────────────────────────────────
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../lib/Auth.php';
+require_once __DIR__ . '/../../lib/App.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: /Muggle/Muggle/login.php');
-    exit();
-}
-if (isset($_SESSION['user_role']) && $_SESSION['user_role'] !== 'admin') {
-    http_response_code(403);
-    exit('Acceso denegado.');
-}
+require_admin();
 
-require_once __DIR__ . '/../../controllers/CatalogoController.php';
+require_once __DIR__ . '/../../controllers/Catalogocontroller.php';
 
 try {
     $controller = new CatalogoController();
@@ -49,7 +40,7 @@ include __DIR__ . '/../layouts/sidebar.php';
     </div>
     <div class="topbar-actions">
         <?php if ($tab !== 'form'): ?>
-        <a href="/Muggle/Muggle/src/views/admin/admin_books.php"
+        <a href="admin_books.php"
            class="btn-admin btn-admin--primary">
             <i class="fas fa-plus"></i> Nuevo libro
         </a>
@@ -141,7 +132,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <div class="book-cell">
                                 <div class="book-thumb">
                                     <?php if (!empty($libro['portada'])): ?>
-                                    <img src="/Muggle/Muggle/<?= htmlspecialchars($libro['portada']) ?>"
+                                     <img src="<?= htmlspecialchars(app_url($libro['portada'])) ?>"
                                          alt="portada" style="width:36px;height:48px;object-fit:cover;border-radius:4px;">
                                     <?php else: ?>
                                     <i class="fas fa-book"></i>
@@ -159,7 +150,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                         <td>
                             <div class="action-btns">
                                 <?php if (!empty($libro['archivo'])): ?>
-                                <a href="/Muggle/Muggle/<?= htmlspecialchars($libro['archivo']) ?>"
+                                <a href="<?= htmlspecialchars(app_url($libro['archivo'])) ?>"
                                    target="_blank"
                                    class="action-btn" title="Ver archivo">
                                     <i class="fas fa-eye"></i>
@@ -171,6 +162,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                                 </a>
                                 <form method="POST" style="display:inline"
                                       onsubmit="return confirm('¿Eliminar «<?= htmlspecialchars(addslashes($libro['titulo'])) ?>»? Esta acción no se puede deshacer.')">
+                                    <?php echo csrf_input(); ?>
                                     <input type="hidden" name="action"   value="delete_book">
                                     <input type="hidden" name="id_libro" value="<?= (int)$libro['id_libro'] ?>">
                                     <button type="submit" class="action-btn action-btn--danger" title="Eliminar">
@@ -242,6 +234,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                                 <!-- Eliminar -->
                                 <form method="POST" style="display:inline"
                                       onsubmit="return confirm('¿Eliminar la categoría «<?= htmlspecialchars(addslashes($cat['nombre'])) ?>»?')">
+                                                                        <?php echo csrf_input(); ?>
                                     <input type="hidden" name="action"       value="delete_category">
                                     <input type="hidden" name="id_categoria" value="<?= (int)$cat['id_categoria'] ?>">
                                     <button type="submit"
@@ -279,6 +272,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                   method="POST"
                   enctype="multipart/form-data"
                   id="formEditLibro">
+                                <?php echo csrf_input(); ?>
 
                 <input type="hidden" name="action"   value="update_book">
                 <input type="hidden" name="id_libro" value="<?= (int)$libroEditar['id_libro'] ?>">
@@ -359,7 +353,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <label class="form-label">Portada</label>
                             <?php if (!empty($libroEditar['portada'])): ?>
                             <div style="margin-bottom:8px;">
-                                <img src="/Muggle/Muggle/<?= htmlspecialchars($libroEditar['portada']) ?>"
+                                <img src="<?= htmlspecialchars(app_url($libroEditar['portada'])) ?>"
                                      alt="portada actual"
                                      style="height:80px;border-radius:6px;border:1px solid #ddd;">
                                 <small class="text-muted d-block"><?= htmlspecialchars($libroEditar['portada']) ?></small>
@@ -379,7 +373,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <label class="form-label">Archivo PDF / EPUB</label>
                             <?php if (!empty($libroEditar['archivo'])): ?>
                             <div style="margin-bottom:8px;">
-                                <a href="/Muggle/Muggle/<?= htmlspecialchars($libroEditar['archivo']) ?>"
+                                <a href="<?= htmlspecialchars(app_url($libroEditar['archivo'])) ?>"
                                    target="_blank" class="btn-admin btn-admin--secondary" style="font-size:12px;padding:4px 10px;">
                                     <i class="fas fa-eye"></i> Ver archivo actual
                                 </a>
@@ -429,6 +423,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         </div>
         <div class="modal-body">
             <form id="formCat" action="catalogo.php?tab=categorias" method="POST">
+                <?php echo csrf_input(); ?>
                 <!-- action oculto: create_category | update_category -->
                 <input type="hidden" name="action"       id="catAction"  value="create_category">
                 <input type="hidden" name="id_categoria" id="catId"      value="">

@@ -1,9 +1,56 @@
 <?php
-session_start();
+require_once __DIR__ . '/src/lib/Auth.php';
+require_once __DIR__ . '/src/models/AuthModel.php';
+require_once __DIR__ . '/src/models/LibraryInteractionModel.php';
+require_once __DIR__ . '/src/models/DashboardModel.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
+$authUser = require_login();
+$authModel = new AuthModel();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_preferences') {
+    require_valid_csrf();
+
+    $themeEnabled = isset($_POST['theme_enabled']) && $_POST['theme_enabled'] === '1';
+    $house = trim((string) ($_POST['house_preference'] ?? 'ravenclaw'));
+
+    $authModel->updatePreferences((int) $authUser['id_usuario'], $themeEnabled, $house);
+    $_SESSION['theme_enabled'] = $themeEnabled;
+    $_SESSION['selected_house'] = $house;
+
+    header('Location: perfil.php?saved=1');
     exit();
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'manage_plan') {
+    require_valid_csrf();
+
+    $submittedPlanId = (int) ($_POST['plan_id'] ?? 0);
+    $planMode = (string) ($_POST['plan_mode'] ?? 'change');
+    $fallbackPlanId = (int) ($_POST['current_plan_id'] ?? 0);
+
+    if ($submittedPlanId <= 0 && $planMode === 'renew') {
+        $submittedPlanId = $fallbackPlanId;
+    }
+
+    if ($submittedPlanId > 0 && $authModel->assignPlanToUser((int) $authUser['id_usuario'], $submittedPlanId)) {
+        header('Location: perfil.php?plan_saved=1');
+        exit();
+    }
+
+    header('Location: perfil.php?plan_saved=0');
+    exit();
+}
+
+$freshUser = $authModel->findUserById((int) $authUser['id_usuario']) ?: $authUser;
+$availablePlans = $authModel->getAvailablePlans();
+
+if (empty($availablePlans)) {
+    $availablePlans = [
+        ['id_plan' => 1, 'nombre' => 'Free', 'precio' => 0],
+        ['id_plan' => 2, 'nombre' => 'Básico', 'precio' => 4.99],
+        ['id_plan' => 3, 'nombre' => 'Plus', 'precio' => 8.99],
+        ['id_plan' => 4, 'nombre' => 'Premium', 'precio' => 13.99],
+    ];
 }
 
 $page_title = 'Mi perfil';
@@ -11,52 +58,63 @@ $active_page = 'perfil';
 
 require_once 'includes/header.php';
 
-/*
-    Estos datos son temporales para que la vista funcione.
-    Luego se reemplazan por consultas a la base de datos.
-*/
-
 $user = [
-    'name' => $_SESSION['user_name'] ?? 'Usuario Demo',
-    'email' => $_SESSION['user_email'] ?? 'usuario@demo.com',
-    'role' => $_SESSION['user_role'] ?? 'usuario',
-    'plan' => $_SESSION['user_plan'] ?? 'Essential',
-    'member_since' => $_SESSION['member_since'] ?? '2026-05-17'
+    'id' => (int) ($freshUser['id_usuario'] ?? 0),
+    'name' => (string) ($freshUser['nombre'] ?? ($_SESSION['user_name'] ?? 'Usuario')),
+    'email' => (string) ($freshUser['email'] ?? ($_SESSION['user_email'] ?? '')),
+    'role' => (string) ($freshUser['rol_nombre'] ?? ($_SESSION['user_role'] ?? 'usuario')),
+    'plan' => (string) ($freshUser['plan_nombre'] ?? ($_SESSION['user_plan'] ?? 'Free')),
+    'plan_id' => (int) ($freshUser['plan_id'] ?? 0),
+    'member_since' => (string) ($freshUser['fecha_registro'] ?? date('Y-m-d')),
+    'theme_enabled' => isset($freshUser['tema_habilitado']) ? (int) $freshUser['tema_habilitado'] === 1 : (bool) ($_SESSION['theme_enabled'] ?? true),
+    'house' => (string) ($freshUser['casa_preferida'] ?? ($_SESSION['selected_house'] ?? 'ravenclaw')),
 ];
 
 $role = strtolower($user['role']);
 $is_admin = $role === 'admin' || $role === 'administrador';
 
 $plans = [
-    'Essential' => [
-        'name' => 'Essential',
+    'Free' => [
+        'name' => 'Free',
         'level' => 'Nivel 1',
-        'description' => 'Acceso básico a la biblioteca, favoritos y lista personal.',
-        'limit' => 'Hasta 10 libros guardados',
-        'progress' => 35,
+        'description' => 'Acceso gratuito al catálogo base.',
+        'limit' => 'Acceso básico',
+        'progress' => 25,
         'features' => [
             'Lectura en línea',
-            'Lista de favoritos',
-            'Historial básico'
+            'Favoritos',
+            'Historial de progreso'
         ]
     ],
-    'Extra' => [
-        'name' => 'Extra',
+    'Básico' => [
+        'name' => 'Básico',
         'level' => 'Nivel 2',
-        'description' => 'Más control sobre tus listas, recomendaciones y colecciones.',
-        'limit' => 'Hasta 50 libros guardados',
+        'description' => 'Más colecciones y mejor experiencia de lectura.',
+        'limit' => 'Catálogo ampliado',
         'progress' => 65,
         'features' => [
-            'Recomendaciones personalizadas',
-            'Colecciones privadas',
-            'Mayor límite de guardados'
+            'Más categorías',
+            'Mayor límite de guardados',
+            'Preferencias avanzadas'
         ]
     ],
-    'Deluxe' => [
-        'name' => 'Deluxe',
+    'Plus' => [
+        'name' => 'Plus',
+        'level' => 'Nivel 2+',
+        'description' => 'Más catálogo y mejores opciones de lectura.',
+        'limit' => 'Catálogo extendido',
+        'progress' => 80,
+        'features' => [
+            'Acceso extendido',
+            'Más guardados',
+            'Experiencia mejorada'
+        ]
+    ],
+    'Premium' => [
+        'name' => 'Premium',
         'level' => 'Nivel 3',
-        'description' => 'Acceso completo a funciones avanzadas de la biblioteca.',
-        'limit' => 'Guardados ilimitados',
+        'description' => 'Acceso completo a todas las funciones de Hogwarts.',
+        'limit' => 'Sin límites',
         'progress' => 100,
         'features' => [
             'Acceso completo',
@@ -66,72 +124,41 @@ $plans = [
     ]
 ];
 
-$current_plan = $plans[$user['plan']] ?? $plans['Essential'];
+$current_plan = $plans[$user['plan']] ?? $plans['Free'];
 
-$favorite_books = [
-    [
-        'title' => 'Crimen y Castigo',
-        'author' => 'Fiódor Dostoyevski',
-        'category' => 'Clásico',
-        'icon' => 'fa-book'
-    ],
-    [
-        'title' => 'El arte de la guerra',
-        'author' => 'Sun Tzu',
-        'category' => 'Estrategia',
-        'icon' => 'fa-chess-knight'
-    ],
-    [
-        'title' => 'Don Quijote de la Mancha',
-        'author' => 'Miguel de Cervantes',
-        'category' => 'Literatura',
-        'icon' => 'fa-feather-alt'
-    ]
-];
+$libraryModel = new LibraryInteractionModel();
+$favorite_books = $libraryModel->getFavoritesByUser((int) $user['id']);
+$saved_books = $libraryModel->getRecentProgressByUser((int) $user['id']);
 
-$saved_books = [
-    [
-        'title' => 'La República',
-        'author' => 'Platón',
-        'status' => 'Guardado para leer',
-        'icon' => 'fa-bookmark'
-    ],
-    [
-        'title' => 'Hábitos Atómicos',
-        'author' => 'James Clear',
-        'status' => 'En progreso',
-        'icon' => 'fa-clock'
-    ],
-    [
-        'title' => '1984',
-        'author' => 'George Orwell',
-        'status' => 'Pendiente',
-        'icon' => 'fa-eye'
-    ]
-];
+if (empty($favorite_books)) {
+    $favorite_books = [];
+}
+
+if (empty($saved_books)) {
+    $saved_books = [];
+}
 
 $admin_stats = [
-    [
-        'label' => 'Usuarios registrados',
-        'value' => '128',
-        'icon' => 'fa-users'
-    ],
-    [
-        'label' => 'Libros disponibles',
-        'value' => '342',
-        'icon' => 'fa-book-open'
-    ],
-    [
-        'label' => 'Planes activos',
-        'value' => '3',
-        'icon' => 'fa-crown'
-    ],
-    [
-        'label' => 'Lecturas del mes',
-        'value' => '876',
-        'icon' => 'fa-chart-line'
-    ]
+    ['label' => 'Usuarios activos', 'value' => '0', 'icon' => 'fa-users'],
+    ['label' => 'Libros disponibles', 'value' => '0', 'icon' => 'fa-book-open'],
+    ['label' => 'Plan premium', 'value' => '0', 'icon' => 'fa-crown'],
+    ['label' => 'Lecturas hoy', 'value' => '0', 'icon' => 'fa-chart-line'],
 ];
+
+if ($is_admin) {
+    $dashboardModel = new DashboardModel();
+    $admin_stats = [
+        ['label' => 'Usuarios activos', 'value' => (string) $dashboardModel->totalUsuariosActivos(), 'icon' => 'fa-users'],
+        ['label' => 'Libros disponibles', 'value' => (string) $dashboardModel->totalLibros(), 'icon' => 'fa-book-open'],
+        ['label' => 'Plan premium', 'value' => (string) $dashboardModel->totalPremium(), 'icon' => 'fa-crown'],
+        ['label' => 'Lecturas hoy', 'value' => (string) $dashboardModel->lecturasHoy(), 'icon' => 'fa-chart-line'],
+    ];
+}
+
+$themeMessage = isset($_GET['saved']) ? 'Preferencias guardadas correctamente.' : '';
+$planMessage = isset($_GET['plan_saved'])
+    ? (($_GET['plan_saved'] === '1') ? 'Plan actualizado correctamente.' : 'No se pudo actualizar el plan.')
+    : '';
 ?>
 
 <section class="profile-page">
@@ -170,17 +197,38 @@ $admin_stats = [
             </div>
 
             <div class="profile-actions">
-                <a href="#" class="profile-action">
-                    <i class="fas fa-pen"></i>
-                    Editar perfil
-                </a>
+                <form method="POST" action="perfil.php" class="profile-preferences-form">
+                    <?php echo csrf_input(); ?>
+                    <input type="hidden" name="action" value="save_preferences">
 
-                <a href="#" class="profile-action">
-                    <i class="fas fa-cog"></i>
-                    Configuración
-                </a>
+                    <label class="profile-action profile-action-inline profile-toggle-row">
+                        <i class="fas fa-palette"></i>
+                        <span>Tema por casa</span>
+                        <input type="checkbox" name="theme_enabled" value="1" <?= $user['theme_enabled'] ? 'checked' : ''; ?>>
+                    </label>
+
+                    <select name="house_preference" class="profile-action profile-action-select">
+                        <option value="ravenclaw" <?= $user['house'] === 'ravenclaw' ? 'selected' : ''; ?>>Ravenclaw</option>
+                        <option value="gryffindor" <?= $user['house'] === 'gryffindor' ? 'selected' : ''; ?>>Gryffindor</option>
+                        <option value="slytherin" <?= $user['house'] === 'slytherin' ? 'selected' : ''; ?>>Slytherin</option>
+                        <option value="hufflepuff" <?= $user['house'] === 'hufflepuff' ? 'selected' : ''; ?>>Hufflepuff</option>
+                    </select>
+
+                    <button type="submit" class="profile-action profile-action-submit">
+                        <i class="fas fa-save"></i>
+                        Guardar preferencias
+                    </button>
+                </form>
             </div>
         </div>
+
+        <?php if ($themeMessage !== ''): ?>
+            <p class="profile-feedback profile-feedback--ok"><?php echo h($themeMessage); ?></p>
+        <?php endif; ?>
+
+        <?php if ($planMessage !== ''): ?>
+            <p class="profile-feedback <?php echo isset($_GET['plan_saved']) && $_GET['plan_saved'] === '1' ? 'profile-feedback--ok' : 'profile-feedback--error'; ?>"><?php echo h($planMessage); ?></p>
+        <?php endif; ?>
 
         <div class="profile-grid">
 
@@ -218,6 +266,32 @@ $admin_stats = [
                             </li>
                         <?php endforeach; ?>
                     </ul>
+
+                    <form method="POST" action="perfil.php" class="profile-plan-form">
+                        <?php echo csrf_input(); ?>
+                        <input type="hidden" name="action" value="manage_plan">
+                        <input type="hidden" name="current_plan_id" value="<?= (int) $user['plan_id']; ?>">
+
+                        <label class="profile-plan-label" for="plan_id">Renovar o cambiar plan</label>
+                        <select id="plan_id" name="plan_id" class="profile-plan-select">
+                            <?php foreach ($availablePlans as $planOption): ?>
+                                <option value="<?= (int) $planOption['id_plan']; ?>" <?= (int) $planOption['id_plan'] === (int) $user['plan_id'] ? 'selected' : ''; ?>>
+                                    <?= h($planOption['nombre']); ?> · $<?= number_format((float) ($planOption['precio'] ?? 0), 2); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+
+                        <div class="profile-plan-actions">
+                            <button type="submit" name="plan_mode" value="renew" class="profile-action profile-plan-btn">
+                                <i class="fas fa-sync-alt"></i>
+                                Renovar actual
+                            </button>
+                            <button type="submit" name="plan_mode" value="change" class="profile-action profile-plan-btn">
+                                <i class="fas fa-random"></i>
+                                Cambiar plan
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="profile-side-card">
@@ -239,7 +313,7 @@ $admin_stats = [
 
                         <div>
                             <span>Miembro desde</span>
-                            <strong><?= h($user['member_since']); ?></strong>
+                            <strong><?= h(date('Y-m-d', strtotime($user['member_since']))); ?></strong>
                         </div>
                     </div>
                 </div>
@@ -280,29 +354,33 @@ $admin_stats = [
                             Libros favoritos
                         </h2>
 
-                        <a href="#" class="view-all">
+                        <a href="mi-lista.php#favoritos" class="view-all">
                             Ver todos <i class="fas fa-chevron-right"></i>
                         </a>
                     </div>
 
                     <div class="profile-book-grid">
-                        <?php foreach ($favorite_books as $book): ?>
-                            <article class="profile-card">
-                                <div class="profile-book-icon">
-                                    <i class="fas <?= h($book['icon']); ?>"></i>
-                                </div>
+                        <?php if (empty($favorite_books)): ?>
+                            <p>No tienes libros favoritos todavía.</p>
+                        <?php else: ?>
+                            <?php foreach ($favorite_books as $book): ?>
+                                <article class="profile-card">
+                                    <div class="profile-book-icon">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
 
-                                <div class="profile-book-info">
-                                    <span><?= h($book['category']); ?></span>
-                                    <h3><?= h($book['title']); ?></h3>
-                                    <p><?= h($book['author']); ?></p>
-                                </div>
+                                    <div class="profile-book-info">
+                                        <span><?= h($book['categoria'] ?? 'General'); ?></span>
+                                        <h3><?= h($book['titulo']); ?></h3>
+                                        <p><?= h($book['autor']); ?></p>
+                                    </div>
 
-                                <a href="#" class="profile-link">
-                                    <i class="fas fa-book-reader"></i>
-                                </a>
-                            </article>
-                        <?php endforeach; ?>
+                                    <span class="profile-link">
+                                        <i class="fas fa-book-reader"></i>
+                                    </span>
+                                </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </section>
 
@@ -313,26 +391,30 @@ $admin_stats = [
                             Guardados / Mi lista
                         </h2>
 
-                        <a href="#" class="view-all">
+                        <a href="mi-lista.php#progreso" class="view-all">
                             Ver lista <i class="fas fa-chevron-right"></i>
                         </a>
                     </div>
 
                     <div class="profile-list">
-                        <?php foreach ($saved_books as $book): ?>
-                            <article class="profile-list-item">
-                                <div class="profile-list-icon">
-                                    <i class="fas <?= h($book['icon']); ?>"></i>
-                                </div>
+                        <?php if (empty($saved_books)): ?>
+                            <p>No hay progreso de lectura guardado todavía.</p>
+                        <?php else: ?>
+                            <?php foreach ($saved_books as $book): ?>
+                                <article class="profile-list-item">
+                                    <div class="profile-list-icon">
+                                        <i class="fas fa-bookmark"></i>
+                                    </div>
 
-                                <div>
-                                    <h3><?= h($book['title']); ?></h3>
-                                    <p><?= h($book['author']); ?></p>
-                                </div>
+                                    <div>
+                                        <h3><?= h($book['titulo']); ?></h3>
+                                        <p><?= h($book['autor']); ?></p>
+                                    </div>
 
-                                <span><?= h($book['status']); ?></span>
-                            </article>
-                        <?php endforeach; ?>
+                                    <span><?= h((string) $book['porcentaje']); ?>%</span>
+                                </article>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
                     </div>
                 </section>
 
