@@ -40,7 +40,12 @@ include __DIR__ . '/../layouts/sidebar.php';
     </div>
     <div class="topbar-actions">
         <?php if ($tab !== 'form'): ?>
+<<<<<<< HEAD
         <button type="button" class="btn-admin btn-admin--primary" id="btnNuevoLibro">
+=======
+        <a href="admin_books.php"
+           class="btn-admin btn-admin--primary">
+>>>>>>> 68bfa74056290fcabc4523b7750694359c5dfb72
             <i class="fas fa-plus"></i> Nuevo libro
         </button>
         <?php endif; ?>
@@ -131,8 +136,12 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <div class="book-cell">
                                 <div class="book-thumb">
                                     <?php if (!empty($libro['portada'])): ?>
+<<<<<<< HEAD
                                      <?php $pSrc = preg_match('#^https?://#i', $libro['portada']) ? $libro['portada'] : app_url($libro['portada']); ?>
                                      <img src="<?= htmlspecialchars($pSrc) ?>"
+=======
+                                     <img src="<?= htmlspecialchars(app_url($libro['portada'])) ?>"
+>>>>>>> 68bfa74056290fcabc4523b7750694359c5dfb72
                                          alt="portada" style="width:36px;height:48px;object-fit:cover;border-radius:4px;">
                                     <?php else: ?>
                                     <i class="fas fa-book"></i>

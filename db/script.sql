@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     password VARCHAR(255) NULL,
     google_id VARCHAR(255) NULL,
     foto_perfil VARCHAR(255) NULL,
+    tema_habilitado TINYINT(1) NOT NULL DEFAULT 1,
+    casa_preferida VARCHAR(20) NOT NULL DEFAULT 'ravenclaw',
     estado ENUM('activo', 'inactivo', 'baneado') NOT NULL DEFAULT 'activo',
     fecha_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     id_rol INT NULL,
@@ -23,6 +25,10 @@ CREATE TABLE IF NOT EXISTS usuarios (
         ON UPDATE CASCADE
         ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE usuarios
+    ADD COLUMN IF NOT EXISTS tema_habilitado TINYINT(1) NOT NULL DEFAULT 1,
+    ADD COLUMN IF NOT EXISTS casa_preferida VARCHAR(20) NOT NULL DEFAULT 'ravenclaw';
 
 CREATE TABLE IF NOT EXISTS auth_google_logs (
     id_log INT AUTO_INCREMENT PRIMARY KEY,
@@ -65,6 +71,7 @@ CREATE TABLE IF NOT EXISTS libros (
     id_categoria INT NOT NULL,
     id_banner INT NULL,
     fecha_publicado DATE NULL,
+    UNIQUE KEY uq_libros_id_banner (id_banner),
     CONSTRAINT fk_libros_categoria
         FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
         ON UPDATE CASCADE
@@ -166,3 +173,44 @@ INSERT IGNORE INTO categorias (id_categoria, nombre, descripcion) VALUES
 (3, 'No ficcion', 'Contenido basado en hechos reales'),
 (4, 'Fantasia', 'Historias fantasticos y mundos magicos'),
 (5, 'Historia', 'Libros historicos y biograficos');
+
+INSERT IGNORE INTO planes (id_plan, nombre, precio, descripcion) VALUES
+(1, 'Free',    0.00,  'Acceso a libros gratuitos'),
+(2, 'Básico',  4.99,  'Catálogo básico'),
+(3, 'Plus',    8.99,  'Catálogo ampliado con audiolibros parcial'),
+(4, 'Premium', 13.99, 'Catálogo completo con audiolibros');
+
+INSERT IGNORE INTO libros (isbn, doi, titulo, autor, descripcion, portada, archivo, tipo, id_categoria, id_banner, fecha_publicado) VALUES
+('9780747532699', NULL, 'Harry Potter and the Philosopher''s Stone', 'J.K. Rowling', 'Primera entrega de la saga Harry Potter.', 'https://covers.openlibrary.org/b/isbn/9780747532699-L.jpg', NULL, 'digital', 4, NULL, '1997-06-26'),
+('9780439064873', NULL, 'Harry Potter and the Chamber of Secrets', 'J.K. Rowling', 'Segunda entrega de la saga Harry Potter.', 'https://covers.openlibrary.org/b/isbn/9780439064873-L.jpg', NULL, 'digital', 4, NULL, '1998-07-02'),
+('9780439139601', NULL, 'Harry Potter and the Goblet of Fire', 'J.K. Rowling', 'Cuarta entrega de la saga Harry Potter.', 'https://covers.openlibrary.org/b/isbn/9780439139601-L.jpg', NULL, 'digital', 4, NULL, '2000-07-08');
+
+INSERT INTO usuarios (nombre, email, password, estado, id_rol, tema_habilitado, casa_preferida)
+VALUES
+('Administrador Hogwarts', 'admin@hogwarts.local', '$2y$12$VIA/jN9xZ9beEIhJ8YEFL.0HXDjSImwOoICzifc4gEKK.Y6/PCXaG', 'activo', 1, 1, 'ravenclaw'),
+('Harry Usuario', 'harry@hogwarts.local', '$2y$12$JyYvw1RbFY36OBgpr2CpRug5BSLVE/BKzX.lvzsMx06suIl6N8FH2', 'activo', 2, 1, 'gryffindor'),
+('Hermione Lectora', 'hermione@hogwarts.local', '$2y$12$dqgdAjexUdQ/2H4JsiUML.DZB.v7gyXDGoYKm4Xr8Nzu6aVVn8aui', 'activo', 2, 0, 'ravenclaw')
+ON DUPLICATE KEY UPDATE
+    nombre = VALUES(nombre),
+    estado = VALUES(estado),
+    id_rol = VALUES(id_rol),
+    tema_habilitado = VALUES(tema_habilitado),
+    casa_preferida = VALUES(casa_preferida);
+
+INSERT INTO suscripciones (id_usuario, id_plan, fecha_inicio, estado)
+SELECT u.id_usuario, 4, CURDATE(), 'activa'
+FROM usuarios u
+LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = 'activa'
+WHERE u.email = 'admin@hogwarts.local' AND s.id_suscripcion IS NULL;
+
+INSERT INTO suscripciones (id_usuario, id_plan, fecha_inicio, estado)
+SELECT u.id_usuario, 2, CURDATE(), 'activa'
+FROM usuarios u
+LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = 'activa'
+WHERE u.email = 'harry@hogwarts.local' AND s.id_suscripcion IS NULL;
+
+INSERT INTO suscripciones (id_usuario, id_plan, fecha_inicio, estado)
+SELECT u.id_usuario, 1, CURDATE(), 'activa'
+FROM usuarios u
+LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = 'activa'
+WHERE u.email = 'hermione@hogwarts.local' AND s.id_suscripcion IS NULL;
