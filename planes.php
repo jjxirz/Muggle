@@ -11,54 +11,104 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Planes | Hogwarts</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <style>
+        :root {
+            --login-primary: #121212;
+            --login-secondary: #1f1f1f;
+            --login-card: #161616;
+            --login-highlight: #a3b7d6;
+            --login-text: #ffffff;
+            --login-muted: rgba(255, 255, 255, 0.76);
+            --login-border: rgba(163, 183, 214, 0.25);
+        }
+
+        body.theme-ravenclaw {
+            background: var(--login-primary);
+            color: var(--login-text);
+        }
+
+        .main-header {
+            background-color: var(--login-primary) !important;
+            border-bottom: 1px solid var(--login-highlight) !important;
+        }
+
+        .nav-menu a:hover,
+        .nav-menu a.active {
+            color: var(--login-highlight) !important;
+        }
+
         .plans-page {
-            padding: 1.5rem 0 2.8rem;
+            min-height: calc(100vh - 80px);
+            padding: 2rem 0 3rem;
+            background:
+                radial-gradient(circle at top left, rgba(163, 183, 214, 0.14), transparent 34%),
+                var(--login-primary);
         }
 
         .plans-hero {
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            background: #141414;
-            padding: 1.4rem;
+            border: 1px solid var(--login-border);
+            border-radius: 18px;
+            background: rgba(20, 20, 20, 0.94);
+            padding: 1.6rem;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
+        }
+
+        .plans-hero h2 {
+            margin: 0;
+            color: var(--login-text);
+        }
+
+        .plans-hero-subtitle {
+            color: var(--login-muted);
+            margin-top: 0.35rem;
         }
 
         .plans-grid {
-            margin-top: 1rem;
+            margin-top: 1.2rem;
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 0.9rem;
         }
 
         .plan-public-card {
-            border: 1px solid #2a2a2a;
-            border-radius: 14px;
-            background: #161616;
+            border: 1px solid var(--login-border);
+            border-radius: 16px;
+            background: var(--login-card);
             padding: 1rem;
+            transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .plan-public-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--login-highlight);
+            background: var(--login-secondary);
         }
 
         .plan-public-card h3 {
             margin: 0;
             font-size: 1.15rem;
+            color: var(--login-text);
         }
 
         .plan-public-price {
             margin-top: 0.45rem;
             font-size: 1.35rem;
             font-weight: 700;
+            color: var(--login-highlight);
         }
 
         .plan-public-price span {
             font-size: 0.8rem;
-            opacity: 0.76;
+            color: var(--login-muted);
             font-weight: 500;
         }
 
         .plan-public-desc {
             margin-top: 0.5rem;
             font-size: 0.84rem;
-            opacity: 0.82;
+            color: var(--login-muted);
         }
 
         .plan-public-list {
@@ -67,7 +117,8 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
             padding: 0;
             display: grid;
             gap: 0.4rem;
-            font-size: 0.8rem;
+            font-size: 0.82rem;
+            color: var(--login-text);
         }
 
         .plan-public-list li {
@@ -76,21 +127,51 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
             align-items: center;
         }
 
+        .plan-public-list i {
+            color: var(--login-highlight);
+        }
+
         .plans-actions {
-            margin-top: 1rem;
+            margin-top: 1.1rem;
             display: flex;
             gap: 0.6rem;
             flex-wrap: wrap;
         }
+
+        .plans-actions .btn-primary {
+            background: var(--login-highlight) !important;
+            color: var(--login-primary) !important;
+            border-color: var(--login-highlight) !important;
+        }
+
+        .plans-actions .btn-secondary {
+            border-color: var(--login-highlight) !important;
+            color: var(--login-highlight) !important;
+        }
+
+        .plans-actions .btn-secondary:hover {
+            background: var(--login-highlight) !important;
+            color: var(--login-primary) !important;
+        }
+
+        @media (max-width: 768px) {
+            .plans-page {
+                padding-top: 1.2rem;
+            }
+
+            .plans-hero {
+                padding: 1.1rem;
+            }
+        }
     </style>
 </head>
-<body>
+<body class="theme-ravenclaw">
 <header class="main-header">
     <div class="container header-content">
         <a href="index.php" class="logo">
             <div class="row">
                 <div class="logo-fa-fallback" style="display:flex;">
-                    <i class="fas fa-hat-wizard"></i>
+                    <i class="fas fa-book-open"></i>
                 </div>
                 <div>
                     <h1>HOGWARTS</h1>
@@ -112,7 +193,7 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
     <section class="container">
         <div class="plans-hero">
             <h2>Elige tu plan de Hogwarts</h2>
-            <p style="opacity:0.82; margin-top:0.35rem;">Comienza gratis o sube de nivel para desbloquear más funciones de lectura.</p>
+            <p class="plans-hero-subtitle">Comienza gratis o sube de nivel para desbloquear más funciones de lectura.</p>
 
             <div class="plans-grid">
                 <article class="plan-public-card">
@@ -162,10 +243,14 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
 
             <div class="plans-actions">
                 <a href="<?php echo htmlspecialchars($targetUrl, ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-primary">
+                    <i class="fas fa-user-check"></i>
                     <?php echo $loggedUser ? 'Gestionar plan en mi perfil' : 'Iniciar sesión para elegir plan'; ?>
                 </a>
                 <?php if (!$loggedUser): ?>
-                    <a href="login.php" class="btn btn-secondary">Ya tengo cuenta</a>
+                    <a href="login.php" class="btn btn-secondary">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Ya tengo cuenta
+                    </a>
                 <?php endif; ?>
             </div>
         </div>
