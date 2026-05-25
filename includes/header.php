@@ -215,7 +215,7 @@ function activeClass($page, $active_page)
 
         .profile-dropdown-toggle:hover,
         .profile-dropdown-toggle.active,
-        .profile-dropdown:focus-within .profile-dropdown-toggle {
+        .profile-dropdown.is-open .profile-dropdown-toggle {
             border-color: var(--house-highlight);
             color: var(--house-highlight);
             background: rgba(255, 255, 255, 0.12);
@@ -240,8 +240,7 @@ function activeClass($page, $active_page)
             z-index: 9999;
         }
 
-        .profile-dropdown:hover .profile-dropdown-menu,
-        .profile-dropdown:focus-within .profile-dropdown-menu {
+        .profile-dropdown.is-open .profile-dropdown-menu {
             display: block;
         }
 
@@ -366,103 +365,16 @@ function activeClass($page, $active_page)
                 </div>
             </a>
 
-            <nav class="nav-menu">
-                <ul>
-                    <li>
-                        <a href="index.php" class="<?= activeClass('inicio', $active_page); ?>">
-                            Inicio
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="explorar.php" class="<?= activeClass('explorar', $active_page); ?>">
-                            Explorar
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="mi-lista.php" class="<?= activeClass('mi-lista', $active_page); ?>">
-                            Mi lista
-                        </a>
-                    </li>
-
-                    <li>
-                        <a href="categorias.php" class="<?= activeClass('categorias', $active_page); ?>">
-                            Categorías
-                        </a>
-                    </li>
-
-                    <?php if ($is_admin): ?>
-                        <li>
-                            <a href="src/views/admin/dashboard.php">
-                                Admin
-                            </a>
-                        </li>
-                    <?php endif; ?>
-
-                    <li class="profile-dropdown-item">
-                        <div class="profile-dropdown">
-                            <button
-                                type="button"
-                                class="profile-dropdown-toggle <?= activeClass('perfil', $active_page); ?>"
-                                aria-haspopup="true"
-                                aria-expanded="false">
-                                <i class="fas fa-user-circle"></i>
-                                <span><?= h($user_name); ?></span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-
-                            <div class="profile-dropdown-menu">
-                                <div class="dropdown-user-summary">
-                                    <i class="fas fa-user-circle"></i>
-
-                                    <div>
-                                        <strong><?= h($user_name); ?></strong>
-                                        <span><?= h($user_email !== '' ? $user_email : $user_plan); ?></span>
-                                    </div>
-                                </div>
-
-                                <?php if ($theme_enabled): ?>
-                                    <form method="GET" action="" class="dropdown-theme-box">
-                                        <label for="house-select-header">
-                                            <i class="fas fa-palette"></i>
-                                            Temas
-                                        </label>
-
-                                        <select id="house-select-header" name="house" onchange="this.form.submit()">
-                                            <option value="ravenclaw" <?= $house === 'ravenclaw' ? 'selected' : ''; ?>>
-                                                Ravenclaw
-                                            </option>
-
-                                            <option value="gryffindor" <?= $house === 'gryffindor' ? 'selected' : ''; ?>>
-                                                Gryffindor
-                                            </option>
-
-                                            <option value="slytherin" <?= $house === 'slytherin' ? 'selected' : ''; ?>>
-                                                Slytherin
-                                            </option>
-
-                                            <option value="hufflepuff" <?= $house === 'hufflepuff' ? 'selected' : ''; ?>>
-                                                Hufflepuff
-                                            </option>
-                                        </select>
-                                    </form>
-                                <?php endif; ?>
-
-                                <a href="perfil.php" class="profile-dropdown-link">
-                                    <i class="fas fa-id-card"></i>
-                                    Perfil
-                                </a>
-
-                                <a href="logout.php" class="logout-btn">
-                                    <i class="fas fa-sign-out-alt"></i>
-                                    Cerrar Sesión
-                                </a>
-                            </div>
-                        </div>
-                    </li>
-                </ul>
-            </nav>
+            <?php
+            $nav_active_page = $active_page;
+            $nav_is_admin = $is_admin;
+            $nav_user_name = $user_name;
+            $nav_user_secondary = $user_email !== '' ? $user_email : $user_plan;
+            $nav_theme_enabled = $theme_enabled;
+            $nav_house = $house;
+            $nav_select_id = 'house-select-header';
+            require __DIR__ . '/nav-menu.php';
+            ?>
         </div>
     </header>
 
