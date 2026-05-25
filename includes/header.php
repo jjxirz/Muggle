@@ -81,6 +81,7 @@ $user_name = $_SESSION['user_name'] ?? 'Usuario';
 $user_email = $_SESSION['user_email'] ?? '';
 $user_role = $_SESSION['user_role'] ?? 'usuario';
 $user_plan = $_SESSION['user_plan'] ?? 'Essential';
+$is_admin = in_array(strtolower((string) $user_role), ['admin', 'administrador'], true);
 
 function activeClass($page, $active_page)
 {
@@ -285,6 +286,14 @@ function activeClass($page, $active_page)
             font-size: 0.9rem;
         }
 
+        .profile-dropdown-link {
+            margin-bottom: 0.2rem;
+        }
+
+        .profile-dropdown-menu .logout-btn {
+            margin-top: 0.2rem;
+        }
+
         .profile-dropdown-link:hover,
         .profile-dropdown-menu .logout-btn:hover {
             background: var(--house-secondary) !important;
@@ -383,7 +392,7 @@ function activeClass($page, $active_page)
                         </a>
                     </li>
 
-                    <?php if (strtolower((string) $user_role) === 'admin'): ?>
+                    <?php if ($is_admin): ?>
                         <li>
                             <a href="src/views/admin/dashboard.php">
                                 Admin
@@ -417,7 +426,7 @@ function activeClass($page, $active_page)
                                     <form method="GET" action="" class="dropdown-theme-box">
                                         <label for="house-select-header">
                                             <i class="fas fa-palette"></i>
-                                            Cambiar tema
+                                            Temas
                                         </label>
 
                                         <select id="house-select-header" name="house" onchange="this.form.submit()">
@@ -442,12 +451,12 @@ function activeClass($page, $active_page)
 
                                 <a href="perfil.php" class="profile-dropdown-link">
                                     <i class="fas fa-id-card"></i>
-                                    Ingresar a perfil
+                                    Perfil
                                 </a>
 
                                 <a href="logout.php" class="logout-btn">
                                     <i class="fas fa-sign-out-alt"></i>
-                                    Cerrar sesión
+                                    Cerrar Sesión
                                 </a>
                             </div>
                         </div>

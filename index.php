@@ -62,6 +62,8 @@ $houses_config = [
 $current_house = $houses_config[$house];
 $user_name = $_SESSION['user_name'] ?? 'Usuario';
 $user_email = $_SESSION['user_email'] ?? '';
+$user_role = $_SESSION['user_role'] ?? 'usuario';
+$is_admin = in_array(strtolower((string) $user_role), ['admin', 'administrador'], true);
 
 function e(mixed $value): string
 {
@@ -411,6 +413,165 @@ $bookSections = array_chunk($pdfBooks, 5);
             color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
+        .main-header,
+        .nav-menu,
+        .nav-menu ul {
+            overflow: visible !important;
+        }
+
+        .nav-menu ul {
+            align-items: center;
+        }
+
+        .profile-dropdown-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .profile-dropdown {
+            position: relative;
+        }
+
+        .profile-dropdown-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            border-radius: 999px;
+            padding: 0.45rem 0.75rem;
+            font: inherit;
+            cursor: pointer;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .profile-dropdown-toggle:hover,
+        .profile-dropdown-toggle.active,
+        .profile-dropdown:focus-within .profile-dropdown-toggle {
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .profile-dropdown-toggle .fa-chevron-down {
+            font-size: 0.72rem;
+            opacity: 0.82;
+        }
+
+        .profile-dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.65rem);
+            right: 0;
+            width: min(260px, 88vw);
+            display: none;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            background: #151515;
+            box-shadow: 0 18px 45px rgba(0, 0, 0, 0.38);
+            z-index: 9999;
+        }
+
+        .profile-dropdown:hover .profile-dropdown-menu,
+        .profile-dropdown:focus-within .profile-dropdown-menu {
+            display: block;
+        }
+
+        .dropdown-user-summary {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.35rem 0.35rem 0.7rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 0.55rem;
+        }
+
+        .dropdown-user-summary i {
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+            font-size: 1.4rem;
+        }
+
+        .dropdown-user-summary strong,
+        .dropdown-user-summary span {
+            display: block;
+            max-width: 180px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dropdown-user-summary span {
+            font-size: 0.76rem;
+            opacity: 0.72;
+        }
+
+        .profile-dropdown-link,
+        .profile-dropdown-menu .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            width: 100%;
+            padding: 0.62rem 0.65rem;
+            border-radius: 10px;
+            color: #ffffff !important;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .profile-dropdown-link {
+            margin-bottom: 0.2rem;
+        }
+
+        .profile-dropdown-menu .logout-btn {
+            margin-top: 0.2rem;
+        }
+
+        .profile-dropdown-link:hover,
+        .profile-dropdown-menu .logout-btn:hover {
+            background: <?php echo $themeEnabled ? $current_house['secondary'] : '#5f5e5a'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['text_color'] : '#ffffff'; ?> !important;
+        }
+
+        .dropdown-theme-box {
+            padding: 0.58rem 0.65rem;
+            margin: 0.25rem 0 0.35rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .dropdown-theme-box label {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-bottom: 0.45rem;
+            font-size: 0.78rem;
+            color: rgba(255, 255, 255, 0.78);
+        }
+
+        .dropdown-theme-box select {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 999px;
+            background: #101010;
+            color: #ffffff;
+            padding: 0.45rem 0.65rem;
+            font-size: 0.82rem;
+        }
+
+        @media (max-width: 900px) {
+            .nav-menu ul {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+            }
+
+            .profile-dropdown-menu {
+                right: auto;
+                left: 0;
+            }
+        }
+
         .btn-primary,
         .hero-badge,
         .play-btn,
@@ -677,7 +838,7 @@ $bookSections = array_chunk($pdfBooks, 5);
                     <li><a href="mi-lista.php">Mi lista</a></li>
                     <li><a href="categorias.php">Categorías</a></li>
 
-                    <?php if (strtolower((string) ($_SESSION['user_role'] ?? 'usuario')) === 'admin'): ?>
+                    <?php if ($is_admin): ?>
                         <li><a href="<?php echo e($baseUrl . '/src/views/admin/dashboard.php'); ?>">Admin</a></li>
                     <?php endif; ?>
 
@@ -702,7 +863,7 @@ $bookSections = array_chunk($pdfBooks, 5);
                                     <form method="GET" action="" class="dropdown-theme-box">
                                         <label for="house-select-index">
                                             <i class="fas fa-palette"></i>
-                                            Cambiar tema
+                                            Temas
                                         </label>
                                         <select id="house-select-index" name="house" onchange="this.form.submit()">
                                             <option value="ravenclaw" <?= $house === 'ravenclaw' ? 'selected' : ''; ?>>Ravenclaw</option>
@@ -715,12 +876,12 @@ $bookSections = array_chunk($pdfBooks, 5);
 
                                 <a href="perfil.php" class="profile-dropdown-link">
                                     <i class="fas fa-id-card"></i>
-                                    Ingresar a perfil
+                                    Perfil
                                 </a>
 
                                 <a href="logout.php" class="logout-btn">
                                     <i class="fas fa-sign-out-alt"></i>
-                                    Cerrar sesión
+                                    Cerrar Sesión
                                 </a>
                             </div>
                         </div>
