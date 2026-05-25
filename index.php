@@ -1,58 +1,64 @@
 <?php
-session_start();
+require_once __DIR__ . '/src/lib/Auth.php';
 
-// Verificar si el usuario está logueado
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
+require_login();
 
-// Obtener la casa seleccionada (por defecto Ravenclaw)
+$baseUrl = app_base_url();
+$assetUrl = $baseUrl . '/assets';
+$bookImagesPath = __DIR__ . '/assets/img-books';
+$bookImagesUrl = $assetUrl . '/img-books';
+
+$themeEnabled = (bool) ($_SESSION['theme_enabled'] ?? true);
+$brandTitle = 'HOGWARTS';
+
 $house = $_GET['house'] ?? $_SESSION['selected_house'] ?? 'ravenclaw';
 $validHouses = ['ravenclaw', 'gryffindor', 'slytherin', 'hufflepuff'];
-if (!in_array($house, $validHouses, true)) {
+
+if (!$themeEnabled || !in_array($house, $validHouses, true)) {
     $house = 'ravenclaw';
 }
 
-// Guardar la casa en sesión
 $_SESSION['selected_house'] = $house;
 
-// Configuración de cada casa
 $houses_config = [
     'ravenclaw' => [
         'name' => 'Ravenclaw',
+        'icon' => 'fa-feather-alt',
         'emoji' => '🦅',
         'logo_img' => 'assets/img/ravenclaw.jpg',
-        'color' => '#0e1a2b',
-        'secondary' => '#5f7f9e',
-        'highlight' => '#cdb57c',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3b7d6',
         'text_color' => '#ffffff'
     ],
     'gryffindor' => [
         'name' => 'Gryffindor',
+        'icon' => 'fa-shield-alt',
         'emoji' => '🦁',
         'logo_img' => 'assets/img/gryffindor.jpg',
-        'color' => '#541011',
-        'secondary' => '#7a1d1f',
-        'highlight' => '#eeba30',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6a3a3',
         'text_color' => '#ffffff'
     ],
     'slytherin' => [
         'name' => 'Slytherin',
+        'icon' => 'fa-dragon',
         'emoji' => '🐍',
         'logo_img' => 'assets/img/slytherin.jpg',
-        'color' => '#1a472a',
-        'secondary' => '#2a623d',
-        'highlight' => '#c8c8c8',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#a3d6b7',
         'text_color' => '#ffffff'
     ],
     'hufflepuff' => [
         'name' => 'Hufflepuff',
+        'icon' => 'fa-seedling',
         'emoji' => '🦡',
         'logo_img' => 'assets/img/hufflepuff.jpg',
-        'color' => '#806216',
-        'secondary' => '#9a7923',
-        'highlight' => '#f0c75e',
+        'color' => '#121212',
+        'secondary' => '#1f1f1f',
+        'highlight' => '#d6c6a3',
         'text_color' => '#ffffff'
     ]
 ];
@@ -60,26 +66,343 @@ $houses_config = [
 $current_house = $houses_config[$house];
 $user_name = $_SESSION['user_name'] ?? 'Usuario';
 $user_email = $_SESSION['user_email'] ?? '';
+
+function e(mixed $value): string {
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+
+function cleanPdfTitle(string $filename): string {
+    $title = pathinfo($filename, PATHINFO_FILENAME);
+
+    $title = (string) preg_replace('/_?\d{8}_\d{6}$/', '', $title);
+    $title = (string) preg_replace('/^\d+[\s_\-]*/', '', $title);
+    $title = str_replace(['_', '-'], ' ', $title);
+    $title = (string) preg_replace('/\s+/', ' ', $title);
+    $title = trim($title);
+
+    if ($title === '') {
+        return 'Obra sin identificar';
+    }
+
+    return mb_convert_case($title, MB_CASE_TITLE, 'UTF-8');
+}
+
+function getPdfSizeLabel(string $filePath): string {
+    if (!is_file($filePath)) {
+        return 'Archivo disponible';
+    }
+
+    $bytes = filesize($filePath);
+
+    if ($bytes === false) {
+        return 'Archivo disponible';
+    }
+
+    if ($bytes >= 1048576) {
+        return round($bytes / 1048576, 1) . ' MB';
+    }
+
+    return round($bytes / 1024) . ' KB';
+}
+
+/**
+ * @return array{title:string, author:string, category:string, year:string, tags:string, description:string}
+ */
+function guessBookMeta(string $filename, string $defaultTitle): array {
+    $name = mb_strtolower($filename, 'UTF-8');
+
+    $meta = [
+        'title' => $defaultTitle,
+        'author' => 'Autor no especificado',
+        'category' => 'Lectura digital',
+        'year' => 'Disponible',
+        'tags' => 'Biblioteca, Lectura digital',
+        'description' => 'Obra disponible en el catálogo digital de la biblioteca.'
+    ];
+
+    if (strpos($name, 'quijote') !== false) {
+        $meta['title'] = 'Don Quijote de la Mancha';
+        $meta['author'] = 'Miguel de Cervantes';
+        $meta['category'] = 'Novela clásica';
+        $meta['year'] = '1605';
+        $meta['tags'] = 'Novela clásica, Literatura española';
+        $meta['description'] = 'Una de las obras más importantes de la literatura española, centrada en las aventuras de Don Quijote y Sancho Panza.';
+        return $meta;
+    }
+
+    if (strpos($name, 'arte') !== false && strpos($name, 'guerra') !== false) {
+        $meta['title'] = 'El arte de la guerra';
+        $meta['author'] = 'Sun Tzu';
+        $meta['category'] = 'Estrategia';
+        $meta['year'] = 'Clásico';
+        $meta['tags'] = 'Estrategia, Liderazgo';
+        $meta['description'] = 'Texto clásico sobre estrategia, planificación, liderazgo y toma de decisiones.';
+        return $meta;
+    }
+
+    if (strpos($name, 'principito') !== false) {
+        $meta['title'] = 'El Principito';
+        $meta['author'] = 'Antoine de Saint-Exupéry';
+        $meta['category'] = 'Novela corta';
+        $meta['year'] = '1943';
+        $meta['tags'] = 'Novela corta, Literatura universal';
+        $meta['description'] = 'Relato literario sobre la amistad, la imaginación y la forma en que los adultos entienden el mundo.';
+        return $meta;
+    }
+
+    if (strpos($name, '1984') !== false) {
+        $meta['title'] = '1984';
+        $meta['author'] = 'George Orwell';
+        $meta['category'] = 'Distopía';
+        $meta['year'] = '1949';
+        $meta['tags'] = 'Distopía, Literatura política';
+        $meta['description'] = 'Novela distópica sobre vigilancia, poder y control social.';
+        return $meta;
+    }
+
+    if (preg_match('/^(.*?)\s+autor\s+(.*?)$/i', $defaultTitle, $matches)) {
+        $meta['title'] = trim($matches[1]);
+        $meta['author'] = trim($matches[2]);
+    }
+
+    return $meta;
+}
+
+function normalizeBookName(string $value): string {
+    $value = pathinfo($value, PATHINFO_FILENAME);
+    $value = mb_strtolower($value, 'UTF-8');
+
+    $replacements = [
+        'á' => 'a',
+        'é' => 'e',
+        'í' => 'i',
+        'ó' => 'o',
+        'ú' => 'u',
+        'ñ' => 'n',
+        'ü' => 'u'
+    ];
+
+    $value = strtr($value, $replacements);
+    $value = (string) preg_replace('/_?\d{8}_\d{6}$/', '', $value);
+    $value = (string) preg_replace('/^\d+[\s_\-]*/', '', $value);
+    $value = (string) preg_replace('/[^a-z0-9]/', '', $value);
+
+    return $value;
+}
+
+function findBookImage(string $pdfFilename, string $bookTitle, string $imageFolderPath, string $imageUrl): string {
+    if (!is_dir($imageFolderPath)) {
+        return '';
+    }
+
+    $manualImages = [
+        '1984.pdf' => '1884.jpeg'
+    ];
+
+    if (isset($manualImages[$pdfFilename])) {
+        $manualPath = $imageFolderPath . DIRECTORY_SEPARATOR . $manualImages[$pdfFilename];
+
+        if (is_file($manualPath)) {
+            return $imageUrl . '/' . rawurlencode($manualImages[$pdfFilename]);
+        }
+    }
+
+    $files = scandir($imageFolderPath);
+
+    if ($files === false) {
+        return '';
+    }
+
+    $validExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+    $pdfName = normalizeBookName($pdfFilename);
+    $titleName = normalizeBookName($bookTitle);
+
+    foreach ($files as $file) {
+        $filePath = $imageFolderPath . DIRECTORY_SEPARATOR . $file;
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+
+        if (!is_file($filePath) || !in_array($extension, $validExtensions, true)) {
+            continue;
+        }
+
+        $imageName = normalizeBookName($file);
+
+        if ($imageName === $pdfName || $imageName === $titleName) {
+            return $imageUrl . '/' . rawurlencode($file);
+        }
+
+        if (
+            $imageName !== '' &&
+            $titleName !== '' &&
+            (strpos($imageName, $titleName) !== false || strpos($titleName, $imageName) !== false)
+        ) {
+            return $imageUrl . '/' . rawurlencode($file);
+        }
+    }
+
+    return '';
+}
+
+/**
+ * @return array<int, array<string, string>>
+ */
+function getPdfBooksFromFolder(string $folderPath, string $assetUrl, string $imageFolderPath, string $imageUrl): array {
+    if (!is_dir($folderPath)) {
+        return [];
+    }
+
+    $files = scandir($folderPath);
+
+    if ($files === false) {
+        return [];
+    }
+
+    $pdfFiles = [];
+
+    foreach ($files as $file) {
+        $filePath = $folderPath . DIRECTORY_SEPARATOR . $file;
+
+        if (is_file($filePath) && strtolower(pathinfo($file, PATHINFO_EXTENSION)) === 'pdf') {
+            $pdfFiles[] = $file;
+        }
+    }
+
+    natcasesort($pdfFiles);
+
+    $books = [];
+
+    foreach ($pdfFiles as $file) {
+        $filePath = $folderPath . DIRECTORY_SEPARATOR . $file;
+        $title = cleanPdfTitle($file);
+        $meta = guessBookMeta($file, $title);
+        $cover = findBookImage($file, $meta['title'], $imageFolderPath, $imageUrl);
+
+        $books[] = [
+            'title' => $meta['title'],
+            'author' => $meta['author'],
+            'category' => $meta['category'],
+            'year' => $meta['year'],
+            'pages' => getPdfSizeLabel($filePath),
+            'tags' => $meta['tags'],
+            'cover' => $cover,
+            'banner' => $cover,
+            'description' => $meta['description'],
+            'pdf' => $assetUrl . '/books/' . rawurlencode($file),
+            'reader' => app_url('reader.php') . '?book=' . rawurlencode($file),
+            'file' => 'assets/books/' . $file,
+            'type' => 'pdf',
+        ];
+    }
+
+    return $books;
+}
+
+function renderBookCard(array $book): void {
+    $title = $book['title'] ?? 'Obra sin identificar';
+    $author = $book['author'] ?? 'Autor no especificado';
+    $description = $book['description'] ?? 'Obra disponible en el catálogo digital de la biblioteca.';
+    $category = $book['category'] ?? 'Lectura digital';
+    $year = $book['year'] ?? 'Disponible';
+    $pages = $book['pages'] ?? 'Archivo disponible';
+    $pdf = $book['pdf'] ?? '';
+    $reader = $book['reader'] ?? $pdf;
+    $file = $book['file'] ?? '';
+    $cover = $book['cover'] ?? '';
+    $banner = $book['banner'] ?? '';
+    $tags = $book['tags'] ?? $category;
+    $type = $book['type'] ?? 'pdf';
+    ?>
+    <div class="book-card js-book-preview"
+         role="button"
+         tabindex="0"
+         data-title="<?php echo e($title); ?>"
+         data-author="<?php echo e($author); ?>"
+         data-description="<?php echo e($description); ?>"
+         data-category="<?php echo e($category); ?>"
+         data-year="<?php echo e($year); ?>"
+         data-pages="<?php echo e($pages); ?>"
+         data-pdf="<?php echo e($pdf); ?>"
+         data-reader="<?php echo e($reader); ?>"
+         data-file="<?php echo e($file); ?>"
+         data-type="<?php echo e($type); ?>"
+         data-cover="<?php echo e($cover); ?>"
+         data-banner="<?php echo e($banner); ?>"
+         data-tags="<?php echo e($tags); ?>">
+        <div class="book-cover">
+            <?php if ($cover !== ''): ?>
+                <img src="<?php echo e($cover); ?>" alt="<?php echo e($title); ?>" class="cover-img">
+            <?php else: ?>
+                <div class="book-cover-fallback">
+                    <span><?php echo e(mb_substr($title, 0, 1, 'UTF-8')); ?></span>
+                    <strong><?php echo e($title); ?></strong>
+                </div>
+            <?php endif; ?>
+
+            <div class="book-overlay">
+                <a href="#" class="play-btn js-open-preview" aria-label="Vista previa de <?php echo e($title); ?>">▶</a>
+            </div>
+        </div>
+
+        <div class="book-info">
+            <h4><?php echo e($title); ?></h4>
+            <p><?php echo e($author); ?></p>
+        </div>
+    </div>
+    <?php
+}
+
+$pdfBooks = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
+$featuredBook = $pdfBooks[0] ?? null;
+$featuredSlides = array_slice($pdfBooks, 0, 5);
+$bookSections = array_chunk($pdfBooks, 5);
 ?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($current_house['name']); ?> Libraries | Stream de libros mágicos</title>
+    <title>Hogwarts | Biblioteca digital</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/book-preview.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+    <meta name="app-base-url" content="<?php echo e($baseUrl); ?>">
     <style>
+        .logo-brand-core {
+            font-size: 0.72rem;
+            opacity: 0.75;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            display: block;
+        }
+
+        .theme-switch-inline {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-left: 0.5rem;
+        }
+
+        .theme-switch-inline select {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+            padding: 0.25rem 0.8rem;
+            font-size: 0.75rem;
+        }
+
         .main-header {
-            background-color: <?php echo $current_house['color']; ?> !important;
-            border-bottom-color: <?php echo $current_house['highlight']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
+            border-bottom-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
         }
 
         .nav-menu a:hover,
         .nav-menu a.active,
         .view-all:hover,
         .footer-col a:hover {
-            color: <?php echo $current_house['highlight']; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-primary,
@@ -88,68 +411,285 @@ $user_email = $_SESSION['user_email'] ?? '';
         .active-house,
         .books-carousel::-webkit-scrollbar-thumb,
         .section-title::after {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-primary,
         .hero-badge,
         .play-btn,
         .active-house {
-            color: <?php echo $current_house['color']; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .btn-primary:hover,
         .category-card:hover,
         .logout-btn:hover {
-            background-color: <?php echo $current_house['secondary']; ?> !important;
-            color: <?php echo $current_house['text_color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['secondary'] : '#5f5e5a'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['text_color'] : '#ffffff'; ?> !important;
         }
 
         .btn-secondary,
         .house-btn {
-            border-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['highlight']; ?> !important;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
         .btn-secondary:hover,
         .house-btn:hover {
-            background-color: <?php echo $current_house['highlight']; ?> !important;
-            color: <?php echo $current_house['color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .category-card {
-            background-color: <?php echo $current_house['color']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
         }
 
         .hero {
-            background-color: <?php echo $current_house['color']; ?> !important;
-            border-bottom: 1px solid <?php echo $current_house['highlight']; ?> !important;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            border-bottom: 1px solid <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
+        }
+
+        .featured-hero {
+            position: relative;
+            min-height: 90vh;
+            overflow: hidden;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            border-bottom: 1px solid <?php echo $themeEnabled ? $current_house['highlight'] : '#d3d1c7'; ?> !important;
+            margin: 0 0 2rem;
+        }
+
+        .featured-hero .hero-slide {
+            position: relative;
+            width: 100%;
+            min-height: 90vh;
+            background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
+            background-position: center;
+            background-size: cover;
+            display: none;
+        }
+
+        .featured-hero .hero-slide.is-active {
+            display: grid;
+            place-items: center;
+            z-index: 2;
+            animation: heroFadeIn 0.85s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes heroFadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(8, 8, 8, 0.46);
+        }
+
+        .featured-hero .hero-content.featured-hero-content {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            min-height: 90vh;
+            display: grid;
+            place-items: center;
+            padding: 0 1.2rem;
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+
+        .featured-hero .hero-panel.featured-hero-panel {
+            width: min(980px, 100%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            background: rgba(10, 10, 10, 0.88);
+            border-radius: 18px;
+            padding: 2.9rem 3rem;
+            backdrop-filter: blur(2px);
+            margin: 0 auto;
+            text-align: center;
+            justify-self: center;
+            box-shadow: 0 18px 54px rgba(0, 0, 0, 0.38);
+        }
+
+        .featured-hero .hero-badge {
+            margin-bottom: 1.1rem;
+            font-size: 0.76rem;
+            letter-spacing: 0.03em;
+        }
+
+        .hero-panel .hero-title {
+            color: #ffffff;
+            font-size: clamp(2.3rem, 5.4vw, 4rem);
+            line-height: 1.02;
+            margin-bottom: 0.95rem;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+        }
+
+        .hero-panel .hero-description {
+            color: rgba(255, 255, 255, 0.92);
+            font-size: 1.08rem;
+            margin-bottom: 0.75rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-panel .hero-synopsis {
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 1.04rem;
+            line-height: 1.62;
+            max-width: 66ch;
+            margin-bottom: 1.45rem;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .hero-panel .hero-buttons {
+            justify-content: center;
+            gap: 0.8rem;
+        }
+
+        .featured-hero .hero-buttons .btn {
+            min-height: 46px;
+            padding: 0.8rem 1.35rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 768px) {
+            .featured-hero {
+                min-height: 72vh;
+            }
+
+            .featured-hero .hero-slide {
+                min-height: 72vh;
+            }
+
+            .featured-hero .hero-content.featured-hero-content {
+                min-height: 74vh;
+                width: 100%;
+                padding: 0 1rem;
+            }
+
+            .featured-hero .hero-panel.featured-hero-panel {
+                width: 100%;
+                padding: 1.55rem 1.15rem;
+                border-radius: 14px;
+            }
+
+            .featured-hero .hero-badge {
+                margin-bottom: 0.8rem;
+            }
+
+            .hero-panel .hero-title {
+                font-size: clamp(1.8rem, 7vw, 2.5rem);
+                margin-bottom: 0.65rem;
+            }
+
+            .hero-panel .hero-description {
+                font-size: 0.95rem;
+            }
+
+            .hero-panel .hero-synopsis {
+                font-size: 0.92rem;
+                line-height: 1.5;
+                margin-bottom: 1rem;
+            }
+
+            .featured-hero .hero-buttons .btn {
+                min-height: 42px;
+                padding: 0.7rem 1rem;
+                font-size: 0.88rem;
+            }
+        }
+
+        .hero-carousel-dots {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 1.2rem;
+            z-index: 3;
+            display: flex;
+            justify-content: center;
+            gap: 0.45rem;
+        }
+
+        .hero-carousel-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 999px;
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            background: rgba(255, 255, 255, 0.25);
+            cursor: pointer;
+        }
+
+        .hero-carousel-dot.is-active {
+            background: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?>;
+        }
+
+        .category-card {
+            color: #ffffff !important;
+            text-decoration: none !important;
+        }
+
+        .house-btn.active-house {
+            background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
+            color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?> !important;
+            border-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
     </style>
 </head>
+
 <body class="theme-<?php echo htmlspecialchars($house); ?>">
 
 <header class="main-header">
     <div class="container header-content">
         <div class="logo">
             <div class="row">
-                <!-- Logo que cambia según la casa seleccionada -->
-                <img src="<?php echo $current_house['logo_img']; ?>" alt="<?php echo $current_house['name']; ?> Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
-                <div class="logo-icon" style="display: none;"><?php echo $current_house['emoji']; ?></div>
-                <h1><?php echo strtoupper($current_house['name']); ?> LIBRARIES</h1>
+                <img src="<?php echo $themeEnabled ? htmlspecialchars($current_house['logo_img']) : ''; ?>" alt="Logo principal de Hogwarts" class="logo-img" style="<?php echo $themeEnabled ? '' : 'display:none;'; ?>" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <div class="logo-fa-fallback" style="display: <?php echo $themeEnabled ? 'none' : 'flex'; ?>;">
+                    <i class="fas <?php echo $themeEnabled ? htmlspecialchars($current_house['icon']) : 'fa-hat-wizard'; ?>"></i>
+                </div>
+                <div>
+                    <h1><?php echo $brandTitle; ?></h1>
+                    <span class="logo-brand-core">
+                        <?php echo $themeEnabled ? 'Tema: ' . htmlspecialchars($current_house['name']) : 'Tema clásico'; ?>
+                    </span>
+                </div>
             </div>
         </div>
 
         <nav class="nav-menu">
             <ul>
-                <li><a href="#" class="active">Inicio</a></li>
-                <li><a href="#">Explorar</a></li>
-                <li><a href="#">Mi lista</a></li>
-                <li><a href="#">Categorías</a></li>
-                <li><a href="/Muggle/Muggle/src/views/admin/dashboard.php">Admin</a></li>
+                <li><a href="index.php" class="active">Inicio</a></li>
+                <li><a href="explorar.php">Explorar</a></li>
+                <li><a href="mi-lista.php">Mi lista</a></li>
+                <li><a href="categorias.php">Categorías</a></li>
+                <li><a href="perfil.php">Perfil</a></li>
+                <?php if (strtolower((string) ($_SESSION['user_role'] ?? 'usuario')) === 'admin'): ?>
+                    <li><a href="<?php echo e($baseUrl . '/src/views/admin/dashboard.php'); ?>">Admin</a></li>
+                <?php endif; ?>
+                <?php if ($themeEnabled): ?>
+                    <li class="theme-switch-inline">
+                        <i class="fas fa-palette" style="font-size:0.8rem;opacity:0.8;"></i>
+                        <form method="GET" action="" style="display:inline;">
+                            <select name="house" onchange="this.form.submit()">
+                                <option value="ravenclaw" <?= $house === 'ravenclaw' ? 'selected' : ''; ?>>Ravenclaw</option>
+                                <option value="gryffindor" <?= $house === 'gryffindor' ? 'selected' : ''; ?>>Gryffindor</option>
+                                <option value="slytherin" <?= $house === 'slytherin' ? 'selected' : ''; ?>>Slytherin</option>
+                                <option value="hufflepuff" <?= $house === 'hufflepuff' ? 'selected' : ''; ?>>Hufflepuff</option>
+                            </select>
+                        </form>
+                    </li>
+                <?php endif; ?>
                 <li class="user-nav-item">
                     <div class="user-menu">
-                        <span class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></span>
+                        <a href="perfil.php" class="user-name"><i class="fas fa-user"></i> <?php echo htmlspecialchars($user_name); ?></a>
                         <a href="logout.php" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</a>
                     </div>
                 </li>
@@ -159,307 +699,517 @@ $user_email = $_SESSION['user_email'] ?? '';
 </header>
 
 <main>
-    <!-- HERO -->
-    <section class="hero">
-        <div class="container hero-content">
-            <span class="hero-badge"><i class="fas fa-fire"></i> RECOMENDACIÓN DEL DÍA · CASA <?php echo strtoupper(htmlspecialchars($current_house['name'])); ?></span>
-            <h1 class="hero-title">Crimen y Castigo</h1>
-            <p class="hero-description">Fiódor Dostoyevski · Crimen · Psicología · Clásico</p>
-            <p class="hero-synopsis">Raskolnikov, un joven estudiante, planea y comete un asesinato para probar su teoría sobre hombres extraordinarios...</p>
-            <div class="hero-buttons">
-                <a href="#" class="btn btn-primary"><i class="fas fa-book-reader"></i> LEER AHORA</a>
-                <a href="#" class="btn btn-secondary"><i class="fas fa-plus"></i> MI LISTA</a>
+    <section class="featured-hero" id="heroCarousel">
+        <?php if (!empty($featuredSlides)): ?>
+            <?php foreach ($featuredSlides as $index => $slideBook): ?>
+                <article class="hero-slide <?php echo $index === 0 ? 'is-active' : ''; ?>" style="<?php echo !empty($slideBook['banner']) ? 'background-image:url(\'' . e($slideBook['banner']) . '\');' : ''; ?>">
+                    <div class="hero-overlay"></div>
+                    <div class="hero-content featured-hero-content">
+                        <div class="hero-panel featured-hero-panel">
+                            <span class="hero-badge">Destacado de la biblioteca</span>
+                            <h1 class="hero-title"><?php echo e($slideBook['title']); ?></h1>
+                            <p class="hero-description">
+                                <?php echo e($slideBook['author']); ?> ·
+                                <?php echo e($slideBook['category']); ?> ·
+                                <?php echo e($slideBook['pages']); ?>
+                            </p>
+                            <p class="hero-synopsis"><?php echo e($slideBook['description']); ?></p>
+                            <div class="hero-buttons">
+                                <a href="#"
+                                   class="btn btn-primary js-book-preview"
+                                   data-title="<?php echo e($slideBook['title']); ?>"
+                                   data-author="<?php echo e($slideBook['author']); ?>"
+                                   data-description="<?php echo e($slideBook['description']); ?>"
+                                   data-category="<?php echo e($slideBook['category']); ?>"
+                                   data-year="<?php echo e($slideBook['year']); ?>"
+                                   data-pages="<?php echo e($slideBook['pages']); ?>"
+                                   data-pdf="<?php echo e($slideBook['pdf']); ?>"
+                                   data-reader="<?php echo e($slideBook['reader']); ?>"
+                                   data-file="<?php echo e($slideBook['file'] ?? ''); ?>"
+                                   data-type="<?php echo e($slideBook['type'] ?? 'pdf'); ?>"
+                                   data-cover="<?php echo e($slideBook['cover']); ?>"
+                                   data-banner="<?php echo e($slideBook['banner']); ?>"
+                                   data-tags="<?php echo e($slideBook['tags']); ?>">
+                                    Vista previa
+                                </a>
+                                <a href="<?php echo e($slideBook['reader']); ?>" class="btn btn-secondary">Comenzar lectura</a>
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <div class="hero-carousel-dots" id="heroCarouselDots">
+                <?php foreach ($featuredSlides as $index => $slideBook): ?>
+                    <button type="button" class="hero-carousel-dot <?php echo $index === 0 ? 'is-active' : ''; ?>" aria-label="Destacado <?php echo $index + 1; ?>"></button>
+                <?php endforeach; ?>
             </div>
-        </div>
+        <?php else: ?>
+            <article class="hero-slide is-active">
+                <div class="hero-overlay"></div>
+                <div class="hero-content featured-hero-content">
+                    <div class="hero-panel featured-hero-panel">
+                        <span class="hero-badge">Biblioteca digital</span>
+                        <h1 class="hero-title">Catálogo sin obras disponibles</h1>
+                        <p class="hero-description">Agrega archivos PDF en la carpeta assets/books para mostrarlos en la biblioteca.</p>
+                    </div>
+                </div>
+            </article>
+        <?php endif; ?>
     </section>
 
-    <!-- SECCIÓN 1: TENDENCIAS -->
-    <section class="row-section">
+    <section class="row-section" id="catalogo-pdf">
         <div class="container">
             <div class="section-header">
-                <h2 class="section-title"><i class="fas fa-fire"></i> Tendencias ahora mismo</h2>
-                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
+                <h2 class="section-title">Catálogo destacado</h2>
+                <a href="explorar.php" class="view-all">Ver todo</a>
             </div>
-            <div class="books-carousel">
-                <div class="book-card">
-                    <div class="book-cover">
-                        <div class="book-rating"><i class="fas fa-star"></i> 4.8</div>
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=1984" alt="1984" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer 1984"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>1984</h4>
-                        <p>George Orwell</p>
-                    </div>
+
+            <?php if (!empty($bookSections[0])): ?>
+                <div class="books-carousel">
+                    <?php foreach ($bookSections[0] as $book): ?>
+                        <?php renderBookCard($book); ?>
+                    <?php endforeach; ?>
                 </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <div class="book-rating"><i class="fas fa-star"></i> 4.9</div>
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Cien+años+de+soledad" alt="Cien años de soledad" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Cien años de soledad"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Cien años de soledad</h4>
-                        <p>Gabriel García Márquez</p>
-                    </div>
+            <?php else: ?>
+                <div class="empty-catalog">
+                    No hay obras disponibles. Coloca archivos PDF en la carpeta assets/books.
                 </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <div class="book-rating"><i class="fas fa-star"></i> 4.7</div>
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+principito" alt="El principito" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer El principito"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>El principito</h4>
-                        <p>Antoine de Saint-Exupéry</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <div class="book-rating"><i class="fas fa-star"></i> 4.6</div>
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Orgullo+y+prejuicio" alt="Orgullo y prejuicio" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Orgullo y prejuicio"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Orgullo y prejuicio</h4>
-                        <p>Jane Austen</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <div class="book-rating"><i class="fas fa-star"></i> 4.9</div>
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Don+Quijote" alt="Don Quijote" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Don Quijote"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Don Quijote de la Mancha</h4>
-                        <p>Miguel de Cervantes</p>
-                    </div>
-                </div>
-            </div>
+            <?php endif; ?>
         </div>
     </section>
 
-    <!-- SECCIÓN 2: RECOMENDADOS -->
-    <section class="row-section">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title"><i class="fas fa-bookmark"></i> Recomendados para ti</h2>
-                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
-            </div>
-            <div class="books-carousel">
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Hamlet" alt="Hamlet" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Hamlet"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Hamlet</h4>
-                        <p>William Shakespeare</p>
-                    </div>
+    <?php if (!empty($bookSections[1])): ?>
+        <section class="row-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Recomendados</h2>
+                    <a href="explorar.php" class="view-all">Ver todo</a>
                 </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=La+metamorfosis" alt="La metamorfosis" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer La metamorfosis"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>La metamorfosis</h4>
-                        <p>Franz Kafka</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Moby+Dick" alt="Moby Dick" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Moby Dick"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Moby Dick</h4>
-                        <p>Herman Melville</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+gran+Gatsby" alt="El gran Gatsby" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer El gran Gatsby"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>El gran Gatsby</h4>
-                        <p>F. Scott Fitzgerald</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Rayuela" alt="Rayuela" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Rayuela"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Rayuela</h4>
-                        <p>Julio Cortázar</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- SECCIÓN 3: CLÁSICOS -->
-    <section class="row-section">
-        <div class="container">
-            <div class="section-header">
-                <h2 class="section-title"><i class="fas fa-award"></i> Clásicos imperdibles</h2>
-                <a href="#" class="view-all">Ver todo <i class="fas fa-chevron-right"></i></a>
-            </div>
-            <div class="books-carousel">
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=La+divina+comedia" alt="La divina comedia" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer La divina comedia"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>La divina comedia</h4>
-                        <p>Dante Alighieri</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Frankenstein" alt="Frankenstein" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Frankenstein"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Frankenstein</h4>
-                        <p>Mary Shelley</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Drácula" alt="Drácula" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Drácula"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Drácula</h4>
-                        <p>Bram Stoker</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=El+retrato+de+Dorian+Gray" alt="El retrato de Dorian Gray" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer El retrato de Dorian Gray"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>El retrato de Dorian Gray</h4>
-                        <p>Oscar Wilde</p>
-                    </div>
-                </div>
-                <div class="book-card">
-                    <div class="book-cover">
-                        <img src="https://placehold.co/200x300/1a2a3a/ffffff?text=Crimen+y+castigo" alt="Crimen y castigo" class="cover-img">
-                        <div class="book-overlay">
-                            <a href="#" class="play-btn" aria-label="Leer Crimen y castigo"><i class="fas fa-book-open"></i></a>
-                        </div>
-                    </div>
-                    <div class="book-info">
-                        <h4>Crimen y castigo</h4>
-                        <p>Dostoyevski</p>
-                    </div>
+                <div class="books-carousel">
+                    <?php foreach ($bookSections[1] as $book): ?>
+                        <?php renderBookCard($book); ?>
+                    <?php endforeach; ?>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    <?php endif; ?>
 
-    <!-- SECCIÓN CATEGORÍAS -->
-    <section class="categories-section">
+    <?php if (!empty($bookSections[2])): ?>
+        <section class="row-section">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Clásicos</h2>
+                    <a href="explorar.php" class="view-all">Ver todo</a>
+                </div>
+
+                <div class="books-carousel">
+                    <?php foreach ($bookSections[2] as $book): ?>
+                        <?php renderBookCard($book); ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <section class="categories-section" id="categorias">
         <div class="container">
-            <h2 class="section-title"><i class="fas fa-layer-group"></i> Explora por categorías</h2>
+            <h2 class="section-title">Explora por categorías</h2>
             <div class="categories-grid">
-                <div class="category-card"><i class="fas fa-landmark category-icon"></i> Clásicos</div>
-                <div class="category-card"><i class="fas fa-rocket category-icon"></i> Ciencia ficción</div>
-                <div class="category-card"><i class="fas fa-search category-icon"></i> Misterio</div>
-                <div class="category-card"><i class="fas fa-heart category-icon"></i> Romance</div>
-                <div class="category-card"><i class="fas fa-moon category-icon"></i> Terror</div>
-                <div class="category-card"><i class="fas fa-brain category-icon"></i> Filosofía</div>
+                <a href="categorias.php" class="category-card">Clásicos</a>
+                <a href="categorias.php" class="category-card">Ciencia ficción</a>
+                <a href="categorias.php" class="category-card">Misterio</a>
+                <a href="categorias.php" class="category-card">Romance</a>
+                <a href="categorias.php" class="category-card">Terror</a>
+                <a href="categorias.php" class="category-card">Filosofía</a>
             </div>
         </div>
     </section>
 
-    <!-- SELECTOR DE CASAS -->
+    <?php if ($themeEnabled): ?>
     <section class="house-selector-section">
         <div class="container">
-            <h2 class="section-title"><i class="fas fa-university"></i> Cambiar casa de Hogwarts</h2>
+            <h2 class="section-title">Cambiar casa de Hogwarts</h2>
             <div class="house-buttons">
-                <a href="?house=ravenclaw" class="house-btn <?php echo $house === 'ravenclaw' ? 'active-house' : ''; ?>">
-                    <i class="fas fa-feather-alt"></i> Ravenclaw
+                <a href="?house=ravenclaw" class="house-btn <?php echo $house == 'ravenclaw' ? 'active-house' : ''; ?>">
+                    🦅 Ravenclaw
                 </a>
-                <a href="?house=gryffindor" class="house-btn <?php echo $house === 'gryffindor' ? 'active-house' : ''; ?>">
-                    <i class="fas fa-shield-alt"></i> Gryffindor
+                <a href="?house=gryffindor" class="house-btn <?php echo $house == 'gryffindor' ? 'active-house' : ''; ?>">
+                    🦁 Gryffindor
                 </a>
-                <a href="?house=slytherin" class="house-btn <?php echo $house === 'slytherin' ? 'active-house' : ''; ?>">
-                    <i class="fas fa-dragon"></i> Slytherin
+                <a href="?house=slytherin" class="house-btn <?php echo $house == 'slytherin' ? 'active-house' : ''; ?>">
+                    🐍 Slytherin
                 </a>
-                <a href="?house=hufflepuff" class="house-btn <?php echo $house === 'hufflepuff' ? 'active-house' : ''; ?>">
-                    <i class="fas fa-seedling"></i> Hufflepuff
+                <a href="?house=hufflepuff" class="house-btn <?php echo $house == 'hufflepuff' ? 'active-house' : ''; ?>">
+                    🦡 Hufflepuff
                 </a>
             </div>
         </div>
     </section>
+    <?php endif; ?>
 </main>
+
+<div class="book-preview-backdrop" id="bookPreviewBackdrop" aria-hidden="true">
+    <div class="book-preview-modal" role="dialog" aria-modal="true" aria-labelledby="bookPreviewTitle">
+        <button type="button" class="book-preview-close" id="bookPreviewClose" aria-label="Cerrar">×</button>
+
+        <div class="book-preview-hero" id="bookPreviewHero">
+            <div class="book-preview-gradient"></div>
+            <div class="book-preview-hero-content">
+                <span class="book-preview-pill" id="bookPreviewCategoryTop">Lectura digital</span>
+                <h2 id="bookPreviewTitle">Título</h2>
+                <p class="book-preview-author" id="bookPreviewAuthor">Autor</p>
+                <div class="book-preview-actions">
+                   <a href="#" class="book-preview-read-btn" id="bookPreviewReadBtn">Comenzar lectura</a>
+                    <button type="button" class="book-preview-list-btn" id="bookPreviewFavoriteBtn">Mi lista</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="book-preview-body">
+            <div class="book-preview-cover-box" id="bookPreviewCoverBox">
+                <img src="" alt="" class="book-preview-cover-img" id="bookPreviewCoverImg">
+                <span id="bookPreviewInitial">L</span>
+                <strong id="bookPreviewCoverTitle">Libro</strong>
+            </div>
+
+            <div>
+                <div class="book-preview-meta">
+                    <span id="bookPreviewYear">Disponible</span>
+                    <span id="bookPreviewCategory">Lectura digital</span>
+                    <span id="bookPreviewPages">Archivo disponible</span>
+                </div>
+
+                <p class="book-preview-description" id="bookPreviewDescription">
+                    Obra disponible en el catálogo digital de la biblioteca.
+                </p>
+
+                <div class="book-preview-tags" id="bookPreviewTags"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <footer class="main-footer">
     <div class="container">
         <div class="footer-content">
             <div class="footer-col">
-                <h4><i class="fas <?php echo htmlspecialchars($current_house['icon']); ?>"></i> <?php echo htmlspecialchars($current_house['name']); ?> Libraries</h4>
-                <p>Streaming de libros gratuito.<br>Miles de títulos a un clic.</p>
+                <h4>Hogwarts</h4>
+                <p>Hogwarts · Biblioteca digital.<br>Obras disponibles para lectura continua.</p>
             </div>
             <div class="footer-col">
                 <h4>Explorar</h4>
                 <ul>
-                    <li><a href="#">Tendencias</a></li>
-                    <li><a href="#">Novedades</a></li>
-                    <li><a href="#">Los más leídos</a></li>
+                    <li><a href="explorar.php">Explorar</a></li>
+                    <li><a href="categorias.php">Categorías</a></li>
+                    <li><a href="mi-lista.php">Mi lista</a></li>
                 </ul>
             </div>
             <div class="footer-col">
                 <h4>Soporte</h4>
                 <ul>
-                    <li><a href="#">Preguntas frecuentes</a></li>
-                    <li><a href="#">Contacto</a></li>
-                    <li><a href="#">Términos</a></li>
+                    <li><a href="faq.php">Preguntas frecuentes</a></li>
+                    <li><a href="contacto.php">Contacto</a></li>
+                    <li><a href="terminos.php">Términos</a></li>
                 </ul>
             </div>
         </div>
         <div class="copyright">
-            <p>© <?php echo date('Y'); ?> <?php echo htmlspecialchars($current_house['name']); ?> Libraries · Casa <?php echo htmlspecialchars($current_house['name']); ?></p>
+            <p>© <?php echo date('Y'); ?> Hogwarts · <?php echo $themeEnabled ? 'Tema ' . htmlspecialchars($current_house['name']) : 'Tema clásico'; ?></p>
         </div>
     </div>
 </footer>
 
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const heroCarousel = document.getElementById('heroCarousel');
+    const heroDotsWrap = document.getElementById('heroCarouselDots');
+
+    if (heroCarousel && heroDotsWrap) {
+        const slides = Array.from(heroCarousel.querySelectorAll('.hero-slide'));
+        const dots = Array.from(heroDotsWrap.querySelectorAll('.hero-carousel-dot'));
+        let current = 0;
+        let autoRotate = null;
+
+        function showSlide(index) {
+            slides.forEach((slide, idx) => {
+                slide.classList.toggle('is-active', idx === index);
+            });
+
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('is-active', idx === index);
+            });
+
+            current = index;
+        }
+
+        if (slides.length > 0) {
+            showSlide(0);
+        }
+
+        function startAutoRotate() {
+            if (autoRotate) {
+                clearInterval(autoRotate);
+            }
+
+            autoRotate = setInterval(() => {
+                const next = (current + 1) % slides.length;
+                showSlide(next);
+            }, 5500);
+        }
+
+        dots.forEach((dot, idx) => {
+            dot.addEventListener('click', () => {
+                showSlide(idx);
+                startAutoRotate();
+            });
+        });
+
+        if (slides.length > 1) {
+            startAutoRotate();
+        }
+    }
+
+    const backdrop = document.getElementById('bookPreviewBackdrop');
+    const closeBtn = document.getElementById('bookPreviewClose');
+
+    if (!backdrop || !closeBtn) {
+        return;
+    }
+
+    const hero = document.getElementById('bookPreviewHero');
+    const title = document.getElementById('bookPreviewTitle');
+    const author = document.getElementById('bookPreviewAuthor');
+    const categoryTop = document.getElementById('bookPreviewCategoryTop');
+    const initial = document.getElementById('bookPreviewInitial');
+    const coverTitle = document.getElementById('bookPreviewCoverTitle');
+    const coverBox = document.getElementById('bookPreviewCoverBox');
+    const coverImg = document.getElementById('bookPreviewCoverImg');
+    const year = document.getElementById('bookPreviewYear');
+    const category = document.getElementById('bookPreviewCategory');
+    const pages = document.getElementById('bookPreviewPages');
+    const description = document.getElementById('bookPreviewDescription');
+    const tags = document.getElementById('bookPreviewTags');
+    const readBtn = document.getElementById('bookPreviewReadBtn');
+    const favoriteBtn = document.getElementById('bookPreviewFavoriteBtn');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const apiUrl = '<?php echo e(app_url('src/controllers/library_api.php')); ?>';
+    let activeBookPayload = null;
+
+    function buildBookPayload(data) {
+        return {
+            file: data.file || '',
+            title: data.title || '',
+            author: data.author || '',
+            description: data.description || '',
+            type: data.type || 'pdf'
+        };
+    }
+
+    async function refreshFavoriteButton(payload) {
+        if (!favoriteBtn || !payload) {
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                action: 'favorite_status',
+                file: payload.file,
+                title: payload.title,
+                author: payload.author,
+                description: payload.description,
+                type: payload.type
+            });
+
+            const response = await fetch(apiUrl + '?' + params.toString(), { credentials: 'same-origin' });
+            const result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                favoriteBtn.textContent = 'Mi lista';
+                return;
+            }
+
+            favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
+        } catch (error) {
+            favoriteBtn.textContent = 'Mi lista';
+        }
+    }
+
+    function setText(element, value, fallback) {
+        if (!element) {
+            return;
+        }
+
+        element.textContent = value && value.trim() !== '' ? value : fallback;
+    }
+
+    function openPreview(card) {
+        const data = card.dataset;
+        const bookTitle = data.title || 'Obra sin identificar';
+        const bookCategory = data.category || 'Lectura digital';
+        const bookPdf = data.pdf || '';
+        const bookReader = data.reader || '';
+        const bookCover = data.cover || '';
+        activeBookPayload = buildBookPayload(data);
+
+        setText(title, bookTitle, 'Obra sin identificar');
+        setText(author, data.author, 'Autor no especificado');
+        setText(categoryTop, bookCategory, 'Lectura digital');
+        setText(initial, bookTitle.substring(0, 1), 'L');
+        setText(coverTitle, bookTitle, 'Libro');
+        setText(year, data.year, 'Disponible');
+        setText(category, bookCategory, 'Lectura digital');
+        setText(pages, data.pages, 'Archivo disponible');
+        setText(description, data.description, 'Obra disponible en el catálogo digital de la biblioteca.');
+
+        if (bookCover && coverImg && coverBox) {
+            coverImg.src = bookCover;
+            coverImg.alt = 'Portada de ' + bookTitle;
+            coverImg.style.display = 'block';
+            coverBox.classList.add('has-image');
+
+            if (initial) {
+                initial.style.display = 'none';
+            }
+
+            if (coverTitle) {
+                coverTitle.style.display = 'none';
+            }
+        } else if (coverImg && coverBox) {
+            coverImg.removeAttribute('src');
+            coverImg.alt = '';
+            coverImg.style.display = 'none';
+            coverBox.classList.remove('has-image');
+
+            if (initial) {
+                initial.style.display = 'inline-flex';
+            }
+
+            if (coverTitle) {
+                coverTitle.style.display = 'block';
+            }
+        }
+
+        if (hero) {
+            const backgroundImage = data.banner || bookCover;
+            hero.style.backgroundImage = backgroundImage ? 'url("' + backgroundImage + '")' : 'none';
+        }
+
+        if (tags) {
+            tags.innerHTML = '';
+
+            const tagList = (data.tags || bookCategory)
+                .split(',')
+                .map(function (tag) {
+                    return tag.trim();
+                })
+                .filter(Boolean);
+
+            tagList.forEach(function (tag) {
+                const span = document.createElement('span');
+                span.textContent = tag;
+                tags.appendChild(span);
+            });
+        }
+
+        if (bookPdf) {
+            readBtn.href = bookReader || bookPdf;
+            readBtn.textContent = 'Comenzar lectura';
+            readBtn.style.pointerEvents = 'auto';
+            readBtn.style.opacity = '1';
+        } else {
+            readBtn.href = '#';
+            readBtn.textContent = 'Lectura no disponible';
+            readBtn.style.pointerEvents = 'none';
+            readBtn.style.opacity = '0.55';
+        }
+
+        refreshFavoriteButton(activeBookPayload);
+
+        backdrop.classList.add('is-open');
+        backdrop.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('preview-open');
+        closeBtn.focus();
+    }
+
+    function closePreview() {
+        backdrop.classList.remove('is-open');
+        backdrop.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('preview-open');
+    }
+
+    document.querySelectorAll('.js-book-preview').forEach(function (card) {
+        card.addEventListener('click', function (event) {
+            event.preventDefault();
+            openPreview(card);
+        });
+
+        card.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openPreview(card);
+            }
+        });
+    });
+
+    closeBtn.addEventListener('click', closePreview);
+
+    if (favoriteBtn) {
+        favoriteBtn.addEventListener('click', async function () {
+            if (!activeBookPayload || !csrfToken) {
+                return;
+            }
+
+            const payload = new URLSearchParams({
+                action: 'toggle_favorite',
+                csrf_token: csrfToken,
+                file: activeBookPayload.file,
+                title: activeBookPayload.title,
+                author: activeBookPayload.author,
+                description: activeBookPayload.description,
+                type: activeBookPayload.type
+            });
+
+            favoriteBtn.disabled = true;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: payload.toString()
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.ok) {
+                    throw new Error('No se pudo actualizar favoritos.');
+                }
+
+                favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
+            } catch (error) {
+                alert('No se pudo actualizar tu lista en este momento.');
+            } finally {
+                favoriteBtn.disabled = false;
+            }
+        });
+    }
+
+    backdrop.addEventListener('click', function (event) {
+        if (event.target === backdrop) {
+            closePreview();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && backdrop.classList.contains('is-open')) {
+            closePreview();
+        }
+    });
+});
+</script>
+
 </body>
+
 </html>

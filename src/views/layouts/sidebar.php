@@ -7,12 +7,12 @@ if (!isset($activePage)) $activePage = '';
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MUGGLE — Admin</title>
+    <title>HOGWARTS — Admin</title>
 
     <!-- Bootstrap 4 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link rel="stylesheet" href="/Muggle/Muggle/assets/css/admin.css">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/admin.css')); ?>">
 </head>
 <body>
 
@@ -23,9 +23,9 @@ if (!isset($activePage)) $activePage = '';
 
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <i class="fas fa-book"></i>
+                <i class="fas fa-hat-wizard"></i>
             </div>
-            <span class="sidebar-brand">MUGGLE</span>
+            <span class="sidebar-brand">HOGWARTS</span>
         </div>
 
         <div class="sidebar-nav">
@@ -67,11 +67,11 @@ if (!isset($activePage)) $activePage = '';
         </div>
 
         <div class="sidebar-footer">
-            <a href="../admin/configuracion.php" class="sidebar-item">
+            <a href="<?= htmlspecialchars(app_url('perfil.php')); ?>" class="sidebar-item">
                 <i class="fas fa-user"></i>
                 <span>Perfil</span>
             </a>
-            <a href="../../../index.php" class="sidebar-item sidebar-item--danger">
+            <a href="<?= htmlspecialchars(app_url('index.php')); ?>" class="sidebar-item sidebar-item--danger">
                 <i class="fas fa-arrow-left"></i>
                 <span>Regresar</span>
             </a>
@@ -81,24 +81,7 @@ if (!isset($activePage)) $activePage = '';
     <!-- ===== FIN SIDEBAR ===== -->
 
     <!-- Botón toggle flotante — siempre visible, fuera del overflow:hidden del sidebar -->
-    <button id="sidebarToggle" aria-label="Colapsar menú" style="
-        position: fixed;
-        top: 14px;
-        left: 14px;
-        z-index: 200;
-        width: 28px;
-        height: 28px;
-        background: none;
-        border: none;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #888780;
-        font-size: 16px;
-        padding: 0;
-        transition: color 0.22s ease;
-    " onmouseover="this.style.color='#F5F4F0'" onmouseout="this.style.color='#888780'">
+    <button id="sidebarToggle" class="sidebar-floating-toggle" aria-label="Colapsar menú">
         <i class="fas fa-bars"></i>
     </button>
 

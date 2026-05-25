@@ -50,9 +50,9 @@ include __DIR__ . '/../layouts/sidebar.php';
 
     <!-- Filtros y búsqueda -->
     <div class="admin-card mb-3">
-        <div class="admin-card__toolbar flex-wrap" style="gap: 0.5rem">
+        <div class="admin-card__toolbar flex-wrap toolbar-gap-sm">
             <!-- Búsqueda -->
-            <div class="search-box" style="max-width: 280px">
+            <div class="search-box search-box--compact">
                 <i class="fas fa-search"></i>
                 <input type="text" id="buscadorLogs" placeholder="Buscar usuario, acción, IP…">
             </div>

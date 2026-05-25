@@ -1,10 +1,7 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../lib/Auth.php';
 
-if (!isset($_SESSION['user_logged_in']) || $_SESSION['user_logged_in'] !== true) {
-    header('Location: login.php');
-    exit();
-}
+require_admin();
 
 require_once __DIR__ . '/../../controllers/UserController.php';
 
@@ -117,6 +114,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                         <td>
                             <div class="action-btns">
                                 <form method="POST" style="display:inline">
+                                    <?php echo csrf_input(); ?>
                                     <input type="hidden" name="action"        value="toggle_estado">
                                     <input type="hidden" name="id_usuario"    value="<?= $usr['id_usuario'] ?>">
                                     <input type="hidden" name="estado_actual" value="<?= $usr['estado'] ?>">
@@ -133,6 +131,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                                     <?php endif; ?>
                                 </form>
                                 <form method="POST" style="display:inline">
+                                    <?php echo csrf_input(); ?>
                                     <input type="hidden" name="action"     value="delete_usuario">
                                     <input type="hidden" name="id_usuario" value="<?= $usr['id_usuario'] ?>">
                                     <input type="hidden" name="tab"        value="usuarios">
@@ -194,6 +193,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         </div>
         <div class="log-modal__body">
             <form method="POST">
+                <?php echo csrf_input(); ?>
                 <input type="hidden" name="action" value="create_usuario">
                 <input type="hidden" name="tab"    value="usuarios">
 

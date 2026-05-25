@@ -1,13 +1,20 @@
 <?php
-session_start();
+require_once __DIR__ . '/src/lib/Auth.php';
 
-// Verificar si ya está logueado
-if (isset($_SESSION['user_logged_in']) && $_SESSION['user_logged_in'] === true) {
-    header('Location: index.php');
+if (current_user() !== null) {
+    header('Location: ' . app_url('index.php'));
     exit();
 }
 
 $error_message = '';
+require_once __DIR__ . '/src/models/AuthModel.php';
+$authModel = null;
+
+try {
+    $authModel = new AuthModel();
+} catch (Throwable $exception) {
+    $error_message = 'No se pudo conectar a la base de datos. Revisa DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASS en tu servidor.';
+}
 
 // Configuración de Google OAuth
 // Reemplaza este valor con tu Client ID real de Google Cloud Console.
@@ -18,33 +25,34 @@ $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https:
 $base_path = rtrim(dirname($_SERVER['PHP_SELF']), '/\\');
 $google_redirect_uri = $protocol . $_SERVER['HTTP_HOST'] . $base_path . '/login.php';
 
-// Manejar login manual (demo)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_login'])) {
+    if (!verify_csrf_token((string) ($_POST['csrf_token'] ?? ''))) {
+        $error_message = 'Tu sesión expiró. Recarga la página e intenta de nuevo.';
+    }
+
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // Demo: credenciales simples
-    if ($email === 'a@gmail.com' && $password === '123') {
-        $_SESSION['user_logged_in'] = true;
-        $_SESSION['user_email'] = $email;
-        $_SESSION['user_name'] = 'Usuario Demo';
-        $_SESSION['user_picture'] = null;
-        header('Location: index.php');
-        exit();
-    }
+    if ($error_message === '' && $authModel instanceof AuthModel) {
+        $user = $authModel->findUserByEmail($email);
 
-    $error_message = 'Credenciales incorrectas. Usa a@gmail.com / 123';
+        if ($user !== null && ($user['estado'] ?? '') === 'activo') {
+            $hash = (string) ($user['password'] ?? '');
+            if ($hash !== '' && password_verify($password, $hash)) {
+                login_user($user);
+                header('Location: ' . app_url('index.php'));
+                exit();
+            }
+        }
+
+        $error_message = 'Credenciales inválidas o usuario inactivo.';
+    } elseif ($error_message === '') {
+        $error_message = 'No se pudo validar tu usuario por un problema de conexión a base de datos.';
+    }
 }
 
-// Procesar respuesta de Google (POST desde el botón)
-// En producción, necesitas verificar el token JWT con Google antes de crear la sesión.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
-    $_SESSION['user_logged_in'] = true;
-    $_SESSION['user_email'] = 'google_user@example.com';
-    $_SESSION['user_name'] = 'Usuario Google';
-    $_SESSION['user_picture'] = null;
-    header('Location: index.php');
-    exit();
+    $error_message = 'El inicio de sesión con Google aún no está habilitado en este entorno.';
 }
 ?>
 <!DOCTYPE html>
@@ -52,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iniciar Sesión · Hogwarts Libraries</title>
+    <title>Iniciar Sesión · Hogwarts</title>
     <link rel="stylesheet" href="assets/css/login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Google Identity Services SDK -->
@@ -67,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
                 <i class="fas fa-book-open"></i>
             </div>
             <h1>HOGWARTS<br>LIBRARIES</h1>
-            <p>Streaming de libros mágicos</p>
+            <p>Plataforma Hogwarts de lectura digital</p>
         </div>
 
         <div class="login-form">
@@ -104,13 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
 
             <!-- Formulario manual (demo) -->
             <form action="login.php" method="POST" class="email-form">
+                <?php echo csrf_input(); ?>
                 <div class="input-group">
                     <label for="email"><i class="fas fa-envelope"></i> Correo electrónico</label>
-                    <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" value="a@gmail.com" required>
+                    <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" value="" required>
                 </div>
                 <div class="input-group">
                     <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
-                    <input type="password" id="password" name="password" placeholder="Contraseña" value="123" required>
+                    <input type="password" id="password" name="password" placeholder="Contraseña" value="" required>
                 </div>
                 <button type="submit" name="manual_login" class="btn-login">
                     <i class="fas fa-sign-in-alt"></i> Iniciar sesión
@@ -118,50 +127,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
             </form>
 
             <div class="signup-link">
-                ¿No tienes cuenta? <a href="#">Regístrate gratis</a>
+                ¿No tienes cuenta? <a href="planes.php">Conoce los planes</a>
             </div>
         </div>
 
         <!-- <div class="login-footer">
             <p>Al iniciar sesión aceptas nuestros <a href="#">Términos</a> y <a href="#">Política de privacidad</a></p>
-            <div class="house-badge">🦅 🦁 🐍 🦡</div>
-        </div> -->
+
+            <div class="house-badge" aria-label="Casas de Hogwarts">
+                <span><i class="fas fa-feather-alt"></i> Ravenclaw</span>
+                <span><i class="fas fa-shield-alt"></i> Gryffindor</span>
+                <span><i class="fas fa-dragon"></i> Slytherin</span>
+                <span><i class="fas fa-seedling"></i> Hufflepuff</span>
+            </div>
+        </div>
     </div>
 </div>
-
-<?php
-// Manejar login manual (demo)
-if (isset($_POST['manual_login'])) {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
-    
-    // Demo: credenciales simples
-    if ($email === "a@gmail.com" && $password === "123") {
-        $_SESSION['user_logged_in'] = true;
-        $_SESSION['user_email'] = $email;
-        $_SESSION['user_name'] = "Usuario Demo";
-        $_SESSION['user_role'] = 'admin';
-        $_SESSION['user_picture'] = null;
-        header('Location: index.php');
-        exit();
-    } else {
-        echo "<script>alert('Credenciales incorrectas. Usa a@gmail.com / 123');</script>";
-    }
-}
-
-// Procesar respuesta de Google (POST desde el botón)
-// En producción, necesitas verificar el token con Google
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
-    // Aquí debes verificar el token JWT con la librería de Google
-    // Por simplicidad, simulamos login exitoso con Google
-    $_SESSION['user_logged_in'] = true;
-    $_SESSION['user_email'] = "google_user@example.com";
-    $_SESSION['user_name'] = "Usuario Google";
-    $_SESSION['user_role'] = 'admin';
-    $_SESSION['user_picture'] = null;
-    header('Location: index.php');
-    exit();
-}
-?>
 </body>
 </html>

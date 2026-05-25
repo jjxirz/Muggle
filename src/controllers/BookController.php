@@ -2,6 +2,8 @@
 
 require_once __DIR__ . '/../models/BookModel.php';
 require_once __DIR__ . '/../models/OpenLibraryService.php';
+require_once __DIR__ . '/../lib/Auth.php';
+require_once __DIR__ . '/../lib/App.php';
 
 class BookController
 {
@@ -31,21 +33,17 @@ class BookController
         }
 
         $editingBook = null;
-        $editingBanner = null;
         $action = $_GET['action'] ?? 'index';
         if ($action === 'edit' && isset($_GET['id'])) {
             $editingBook = $this->bookModel->find((int) $_GET['id']);
-        }
-        if ($action === 'edit_banner' && isset($_GET['banner_id'])) {
-            $editingBanner = $this->bookModel->findBanner((int) $_GET['banner_id']);
         }
 
         return [
             'books' => $this->bookModel->all(),
             'categories' => $this->bookModel->categories(),
             'editingBook' => $editingBook,
-            'banners' => $this->bookModel->allBanners(),
-            'editingBanner' => $editingBanner,
+            'banners' => [],
+            'editingBanner' => null,
             'flash' => $this->consumeFlash(),
             'existingPdfFiles' => $this->listExistingPdfFiles(),
         ];
@@ -92,21 +90,35 @@ class BookController
 
     private function handlePostAction(): void
     {
+        require_valid_csrf();
+
         $action = $_POST['action'] ?? '';
 
         try {
             $payload = $_POST;
             $this->mergeArchivoSelection($payload);
             $this->attachUploadedPdf($payload);
+            $this->attachUploadedBannerImage($payload);
 
             if ($action === 'create') {
-                $this->bookModel->create($payload);
+                $bookId = $this->bookModel->create($payload);
+
+                if (!empty($payload['imagen'])) {
+                    $this->bookModel->saveBannerForBook($bookId, (string) $payload['imagen']);
+                }
+
                 $this->setFlash('Libro creado correctamente.', 'success');
                 $this->redirectToAdmin();
             }
 
             if ($action === 'update' && isset($_POST['id_libro'])) {
-                $this->bookModel->update((int) $_POST['id_libro'], $payload);
+                $bookId = (int) $_POST['id_libro'];
+                $this->bookModel->update($bookId, $payload);
+
+                if (!empty($payload['imagen'])) {
+                    $this->bookModel->saveBannerForBook($bookId, (string) $payload['imagen']);
+                }
+
                 $this->setFlash('Libro actualizado correctamente.', 'success');
                 $this->redirectToAdmin();
             }
@@ -115,39 +127,6 @@ class BookController
                 $this->bookModel->delete((int) $_POST['id_libro']);
                 $this->setFlash('Libro eliminado correctamente.', 'success');
                 $this->redirectToAdmin();
-            }
-
-            if ($action === 'create_banner') {
-                $this->attachUploadedBannerImage($payload);
-
-                if (empty($payload['imagen'])) {
-                    throw new RuntimeException('Debes subir una imagen para crear el banner.');
-                }
-
-                $this->bookModel->createBanner($payload);
-                $this->setFlash('Banner creado correctamente.', 'success');
-                $this->redirectToAdmin('#banners');
-            }
-
-            if ($action === 'update_banner' && isset($_POST['id_banner'])) {
-                $this->attachUploadedBannerImage($payload);
-
-                if (empty($payload['imagen'])) {
-                    $currentBanner = $this->bookModel->findBanner((int) $_POST['id_banner']);
-                    if ($currentBanner !== null) {
-                        $payload['imagen'] = $currentBanner['imagen'];
-                    }
-                }
-
-                $this->bookModel->updateBanner((int) $_POST['id_banner'], $payload);
-                $this->setFlash('Banner actualizado correctamente.', 'success');
-                $this->redirectToAdmin('#banners');
-            }
-
-            if ($action === 'delete_banner' && isset($_POST['id_banner'])) {
-                $this->bookModel->deleteBanner((int) $_POST['id_banner']);
-                $this->setFlash('Banner eliminado correctamente.', 'success');
-                $this->redirectToAdmin('#banners');
             }
 
             $this->setFlash('Accion no valida.', 'error');
@@ -292,7 +271,7 @@ class BookController
 
         $this->storeUploadedFile($tmpName, $destinationPath, 'la imagen del banner');
 
-        $payload['imagen'] = '/Muggle/assets/banners/' . $fileName;
+        $payload['imagen'] = app_url('assets/banners/' . $fileName);
     }
 
     private function setFlash(string $message, string $type): void

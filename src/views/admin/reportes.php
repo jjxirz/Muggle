@@ -78,6 +78,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Libro más leído</div>
+<<<<<<< HEAD
                 <?php if ($libroTop['titulo']): ?>
                     <div class="stat-value" style="font-size:1rem; line-height:1.3">
                         <?= htmlspecialchars($libroTop['titulo']) ?>
@@ -87,6 +88,10 @@ include __DIR__ . '/../layouts/sidebar.php';
                     <div class="stat-value" style="font-size:1rem; opacity:.4">—</div>
                     <div class="stat-sub stat-sub--neutral">Sin datos aún</div>
                 <?php endif; ?>
+=======
+                <div class="stat-value topbar-muted-value"><?= $libroTop ?? 'IT (Eso)' ?></div>
+                <div class="stat-sub stat-sub--neutral">43 lecturas</div>
+>>>>>>> 68bfa74056290fcabc4523b7750694359c5dfb72
             </div>
         </div>
         <div class="col-md-3 col-sm-6 mb-3">
