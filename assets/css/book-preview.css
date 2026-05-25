@@ -1,3 +1,4 @@
+/* ========== BOOK PREVIEW MODAL - CSS UNIFICADO ========== */
 body.preview-open {
     overflow: hidden;
 }
@@ -11,6 +12,7 @@ body.preview-open {
     outline-offset: 6px;
 }
 
+/* ========== BOOK COVER FALLBACK (tarjetas del catálogo) ========== */
 .book-cover-fallback {
     width: 100%;
     height: 100%;
@@ -19,14 +21,11 @@ body.preview-open {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-
     padding: 24px;
     text-align: center;
-
     background:
         radial-gradient(circle at top left, rgba(205, 181, 124, 0.22), transparent 35%),
         linear-gradient(135deg, #0e1a2b, #1a2a3a);
-
     color: #ffffff;
 }
 
@@ -34,10 +33,8 @@ body.preview-open {
     display: inline-flex;
     margin-bottom: 14px;
     padding: 6px 12px;
-
     border-radius: 999px;
     background: rgba(0, 0, 0, 0.45);
-
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 1px;
@@ -48,18 +45,16 @@ body.preview-open {
     line-height: 1.2;
 }
 
+/* ========== BACKDROP ========== */
 .book-preview-backdrop {
     position: fixed;
     inset: 0;
     z-index: 9999;
-
     display: none;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
-
-    padding: 45px 18px;
+    padding: 24px 18px;
     overflow-y: auto;
-
     background: rgba(0, 0, 0, 0.82);
     backdrop-filter: blur(4px);
 }
@@ -68,18 +63,31 @@ body.preview-open {
     display: flex;
 }
 
+/* ========== MODAL ========== */
 .book-preview-modal {
     position: relative;
-
-    width: min(920px, 100%);
-    overflow: hidden;
-
+    width: min(800px, 100%);
+    max-height: 92vh;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 18px;
     background: #111923;
     color: #ffffff;
-
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.65);
-    animation: previewEnter 0.18s ease-out;
+    animation: previewEnter 0.22s ease-out;
+}
+
+.book-preview-modal::-webkit-scrollbar {
+    width: 6px;
+}
+
+.book-preview-modal::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.book-preview-modal::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
 }
 
 @keyframes previewEnter {
@@ -87,43 +95,42 @@ body.preview-open {
         transform: translateY(16px) scale(0.98);
         opacity: 0;
     }
-
     to {
         transform: translateY(0) scale(1);
         opacity: 1;
     }
 }
 
+/* ========== CLOSE BUTTON ========== */
 .book-preview-close {
     position: absolute;
     top: 16px;
     right: 16px;
     z-index: 4;
-
     width: 38px;
     height: 38px;
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 0;
     border-radius: 50%;
-
     background: rgba(0, 0, 0, 0.72);
     color: #ffffff;
-
-    font-size: 28px;
-    line-height: 34px;
-
+    font-size: 24px;
+    line-height: 1;
     cursor: pointer;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .book-preview-close:hover {
     background: rgba(255, 255, 255, 0.18);
+    transform: scale(1.05);
 }
 
+/* ========== HERO ========== */
 .book-preview-hero {
     position: relative;
-
-    min-height: 360px;
-
+    min-height: 220px;
     background-color: #0e1a2b;
     background-position: center;
     background-size: cover;
@@ -132,7 +139,6 @@ body.preview-open {
 .book-preview-gradient {
     position: absolute;
     inset: 0;
-
     background:
         linear-gradient(90deg, rgba(17, 25, 35, 0.98) 0%, rgba(17, 25, 35, 0.78) 45%, rgba(17, 25, 35, 0.30) 100%),
         linear-gradient(0deg, #111923 0%, rgba(17, 25, 35, 0.12) 52%, rgba(17, 25, 35, 0.34) 100%);
@@ -141,78 +147,74 @@ body.preview-open {
 .book-preview-hero-content {
     position: relative;
     z-index: 2;
-
     max-width: 610px;
-    padding: 72px 42px 48px;
+    padding: 48px 36px 36px;
 }
 
 .book-preview-pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-
-    margin-bottom: 18px;
-    padding: 7px 12px;
-
+    margin-bottom: 14px;
+    padding: 6px 14px;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 999px;
-
     background: rgba(0, 0, 0, 0.38);
-
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 .book-preview-hero-content h2 {
-    margin: 0 0 10px;
-
-    font-size: clamp(32px, 5vw, 56px);
-    line-height: 1.02;
-    letter-spacing: -1px;
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.08;
+    letter-spacing: -0.5px;
 }
 
 .book-preview-author {
     margin: 0;
-
     color: rgba(255, 255, 255, 0.78);
-
-    font-size: 17px;
+    font-size: 16px;
+    font-weight: 500;
 }
 
+/* ========== ACTION BUTTONS ========== */
 .book-preview-actions {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 12px;
-
-    margin-top: 28px;
+    margin-top: 24px;
 }
 
-.book-preview-read-btn,
-.book-preview-icon-btn {
+/* Botón "Comenzar lectura" */
+.book-preview-read-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-
-    min-height: 44px;
-    padding: 0 20px;
-
-    border-radius: 10px;
-
-    font-weight: 800;
-    text-decoration: none;
-
-    cursor: pointer;
-}
-
-.book-preview-read-btn {
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 24px;
     border: 0;
-
+    border-radius: 10px;
     background: #cdb57c;
     color: #0e1a2b;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .book-preview-read-btn:hover {
-    filter: brightness(1.08);
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(205, 181, 124, 0.3);
+}
+
+.book-preview-read-btn:active {
+    transform: scale(0.97);
 }
 
 .book-preview-read-btn.is-disabled {
@@ -221,70 +223,110 @@ body.preview-open {
     filter: grayscale(1);
 }
 
-.book-preview-icon-btn {
-    border: 1px solid rgba(255, 255, 255, 0.28);
+/* Botón "Mi lista" - CLASE CORRECTA: book-preview-list-btn */
+.book-preview-list-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 0 22px;
+    border: 2px solid rgba(205, 181, 124, 0.6);
+    border-radius: 10px;
+    background: rgba(205, 181, 124, 0.1);
+    color: #cdb57c;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    font-family: inherit;
+}
 
-    background: rgba(255, 255, 255, 0.08);
+.book-preview-list-btn:hover {
+    background: rgba(205, 181, 124, 0.2);
+    border-color: #cdb57c;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(205, 181, 124, 0.3);
+}
+
+.book-preview-list-btn:active {
+    transform: scale(0.96);
+    transition: transform 0.1s ease;
+}
+
+.book-preview-list-btn.is-added {
+    background: rgba(205, 181, 124, 0.25);
+    border-color: #cdb57c;
     color: #ffffff;
 }
 
-.book-preview-icon-btn:hover {
-    background: rgba(255, 255, 255, 0.14);
+.book-preview-list-btn.is-added::before {
+    content: "✓ ";
+    font-weight: 800;
 }
 
+/* ========== BODY ========== */
 .book-preview-body {
     display: grid;
-    grid-template-columns: 170px 1fr;
+    grid-template-columns: 180px 1fr;
     gap: 28px;
-
-    padding: 28px 42px 40px;
+    padding: 28px 36px 36px;
 }
 
+/* ========== COVER ========== */
 .book-preview-cover-wrap {
     min-width: 0;
+    width: 100%;
 }
 
 .book-preview-cover {
     width: 100%;
-    min-height: 245px;
-
+    min-height: 260px;
+    display: block;
     border-radius: 12px;
     object-fit: cover;
-
     background: #1a2a3a;
-
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.book-preview-cover[src=""],
+.book-preview-cover:not([src]) {
+    display: none;
 }
 
 .book-preview-cover-placeholder {
     width: 100%;
-    min-height: 245px;
-
+    min-height: 260px;
     display: none;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-
     padding: 20px;
     text-align: center;
-
     border-radius: 12px;
-
     background:
         radial-gradient(circle at top left, rgba(205, 181, 124, 0.20), transparent 38%),
         linear-gradient(135deg, #0e1a2b, #20354a);
-
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+}
+
+.book-preview-cover:not([src]) + .book-preview-cover-placeholder,
+.book-preview-cover[src=""] + .book-preview-cover-placeholder {
+    display: flex;
+}
+
+.book-preview-cover[src]:not([src=""]) + .book-preview-cover-placeholder {
+    display: none;
 }
 
 .book-preview-cover-placeholder span {
     margin-bottom: 12px;
-    padding: 6px 12px;
-
+    padding: 6px 14px;
     border-radius: 999px;
-
     background: rgba(0, 0, 0, 0.44);
-
     font-size: 13px;
     font-weight: 800;
     letter-spacing: 1px;
@@ -293,8 +335,10 @@ body.preview-open {
 .book-preview-cover-placeholder strong {
     font-size: 18px;
     line-height: 1.2;
+    font-weight: 700;
 }
 
+/* ========== DETAILS ========== */
 .book-preview-details {
     min-width: 0;
 }
@@ -303,28 +347,22 @@ body.preview-open {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-
     margin-bottom: 18px;
 }
 
 .book-preview-meta span {
-    padding: 6px 10px;
-
+    padding: 6px 12px;
     border-radius: 8px;
-
     background: rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.82);
-
     font-size: 13px;
     font-weight: 700;
 }
 
 .book-preview-description {
     margin: 0 0 18px;
-
     color: rgba(255, 255, 255, 0.84);
-
-    font-size: 16px;
+    font-size: 15px;
     line-height: 1.65;
 }
 
@@ -332,45 +370,37 @@ body.preview-open {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-
     margin-bottom: 18px;
 }
 
 .book-preview-tags span {
-    padding: 6px 10px;
-
+    padding: 5px 12px;
     border-radius: 999px;
-
     background: rgba(255, 255, 255, 0.10);
     color: rgba(255, 255, 255, 0.82);
-
     font-size: 12px;
     font-weight: 700;
 }
 
 .book-preview-note {
     margin: 0;
-
     color: rgba(255, 255, 255, 0.55);
-
     font-size: 13px;
+    font-style: italic;
 }
 
+/* ========== EMPTY LIBRARY ========== */
 .empty-library-message {
     margin-top: 18px;
     padding: 28px;
-
     border-radius: 14px;
-
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.10);
-
     color: rgba(255, 255, 255, 0.86);
 }
 
 .empty-library-message h3 {
     margin: 0 0 8px;
-
     color: #ffffff;
 }
 
@@ -378,36 +408,90 @@ body.preview-open {
     margin: 0;
 }
 
+/* ========== RESPONSIVE ========== */
 @media (max-width: 720px) {
     .book-preview-backdrop {
-        padding: 18px 10px;
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .book-preview-modal {
+        width: 100%;
+        max-height: 94vh;
+        border-radius: 18px 18px 0 0;
+        animation: previewEnterMobile 0.25s ease-out;
+    }
+
+    @keyframes previewEnterMobile {
+        from {
+            transform: translateY(40px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 
     .book-preview-hero {
-        min-height: 315px;
+        min-height: 200px;
     }
 
     .book-preview-hero-content {
-        padding: 68px 22px 34px;
+        padding: 40px 22px 28px;
+    }
+
+    .book-preview-hero-content h2 {
+        font-size: 26px;
+    }
+
+    .book-preview-actions {
+        gap: 10px;
+    }
+
+    .book-preview-read-btn,
+    .book-preview-list-btn {
+        min-height: 42px;
+        padding: 0 18px;
+        font-size: 13px;
     }
 
     .book-preview-body {
         grid-template-columns: 1fr;
-        padding: 24px 22px 32px;
+        gap: 20px;
+        padding: 20px 22px 28px;
     }
 
-    .book-preview-cover {
-        max-width: 170px;
-        min-height: 240px;
-    }
-
+    .book-preview-cover,
     .book-preview-cover-placeholder {
-        max-width: 170px;
-        min-height: 240px;
+        max-width: 160px;
+        min-height: 230px;
+        margin: 0 auto;
     }
 }
 
-/* Corrección de portada superior */
+@media (max-width: 400px) {
+    .book-preview-hero-content {
+        padding: 32px 16px 22px;
+    }
+
+    .book-preview-body {
+        padding: 16px 16px 24px;
+    }
+
+    .book-preview-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .book-preview-read-btn,
+    .book-preview-list-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ========== CORRECCIONES HERO (PORTADA SUPERIOR) ========== */
 .hero {
     min-height: auto !important;
     height: auto !important;

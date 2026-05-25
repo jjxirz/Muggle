@@ -61,8 +61,6 @@ $pdfUrl = $isValidBook ? $assetUrl . '/books/' . rawurlencode($book) : '';
                 <p>Modo lectura</p>
             </div>
         </div>
-
-        
     </header>
 
     <main class="reader-main">
@@ -73,14 +71,32 @@ $pdfUrl = $isValidBook ? $assetUrl . '/books/' . rawurlencode($book) : '';
                 <a href="<?php echo $baseUrl; ?>/index.php">Regresar al catálogo</a>
             </section>
         <?php else: ?>
+            <!-- TOOLBAR MEJORADA -->
             <section class="reader-toolbar">
-                <button type="button" id="prevPageBtn"><</button>
+                <button type="button" id="prevPageBtn" class="reader-btn" title="Página anterior" aria-label="Página anterior">◀</button>
 
                 <div class="reader-page-info">
                     Página <span id="currentPage">1</span> de <span id="totalPages">0</span>
                 </div>
 
-                <button type="button" id="nextPageBtn">></button>
+                <button type="button" id="nextPageBtn" class="reader-btn" title="Página siguiente" aria-label="Página siguiente">▶</button>
+
+                <!-- Salto directo a página -->
+                <div class="reader-jump-group">
+                    <input 
+                        type="number" 
+                        id="jumpPageInput" 
+                        class="reader-jump-input" 
+                        min="1" 
+                        placeholder="#" 
+                        title="Ir a página"
+                        aria-label="Número de página"
+                    >
+                    <button type="button" id="jumpPageBtn" class="reader-btn reader-btn--go" title="Ir a la página" aria-label="Ir a página">Ir</button>
+                </div>
+
+                <!-- Pantalla completa -->
+                <button type="button" id="fullscreenBtn" class="reader-btn reader-btn--fullscreen" title="Pantalla completa" aria-label="Pantalla completa">⛶</button>
             </section>
 
             <section class="reader-loading" id="readerLoading">

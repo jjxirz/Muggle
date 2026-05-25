@@ -7,12 +7,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const loadingText = document.getElementById('loadingText');
     const loadingProgressBar = document.getElementById('loadingProgressBar');
     const loadingPercent = document.getElementById('loadingPercent');
+
     const currentPage = document.getElementById('currentPage');
     const totalPages = document.getElementById('totalPages');
+
+    const jumpPageInput = document.getElementById('jumpPageInput');
+    const jumpPageBtn = document.getElementById('jumpPageBtn');
+
     const prevBtn = document.getElementById('prevPageBtn');
     const nextBtn = document.getElementById('nextPageBtn');
+    const fullscreenBtn = document.getElementById('fullscreenBtn');
 
     let pageFlip = null;
+    let pageCount = 0;
+
+    // ========== OCULTAR FLIPBOOK DURANTE LA CARGA ==========
+    if (wrapper) {
+        wrapper.style.visibility = 'hidden';
+        wrapper.style.opacity = '0';
+        wrapper.style.position = 'absolute';
+        wrapper.style.pointerEvents = 'none';
+    }
 
     function showError(message) {
         if (loadingText) {
@@ -42,6 +57,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function updatePageUI(pageNumber) {
+        const safePage = Math.max(1, Math.min(pageNumber, pageCount || 1));
+
+        if (currentPage) {
+            currentPage.textContent = String(safePage);
+        }
+
+        if (jumpPageInput) {
+            jumpPageInput.value = String(safePage);
+        }
+
+        if (prevBtn) {
+            prevBtn.disabled = safePage <= 1;
+        }
+
+        if (nextBtn) {
+            nextBtn.disabled = pageCount > 0 && safePage >= pageCount;
+        }
+    }
+
     function createPageElement(canvas) {
         const page = document.createElement('div');
         page.className = 'reader-page';
@@ -51,11 +86,20 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     async function renderPdfPages(pdf) {
-        const pageCount = pdf.numPages;
+        pageCount = pdf.numPages;
 
         if (totalPages) {
             totalPages.textContent = String(pageCount);
         }
+
+        if (jumpPageInput) {
+            jumpPageInput.max = String(pageCount);
+        }
+
+        updatePageUI(1);
+
+        // Crear un fragmento para no disparar reflows múltiples
+        const fragment = document.createDocumentFragment();
 
         for (let pageNumber = 1; pageNumber <= pageCount; pageNumber++) {
             setLoadingText('Preparando página ' + pageNumber + ' de ' + pageCount + '...');
@@ -71,6 +115,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
 
+            if (!context) {
+                throw new Error('No se pudo preparar el canvas de lectura.');
+            }
+
             canvas.width = viewport.width;
             canvas.height = viewport.height;
 
@@ -79,8 +127,84 @@ document.addEventListener('DOMContentLoaded', function () {
                 viewport: viewport
             }).promise;
 
-            flipbookElement.appendChild(createPageElement(canvas));
+            fragment.appendChild(createPageElement(canvas));
         }
+
+        // Insertar todas las páginas de una sola vez
+        flipbookElement.appendChild(fragment);
+    }
+
+    function goToPage(pageNumber) {
+        if (!pageFlip || !pageCount) {
+            return;
+        }
+
+        const requestedPage = Number.parseInt(String(pageNumber), 10);
+
+        if (Number.isNaN(requestedPage)) {
+            updatePageUI(pageFlip.getCurrentPageIndex() + 1);
+            return;
+        }
+
+        const safePage = Math.max(1, Math.min(requestedPage, pageCount));
+
+        pageFlip.turnToPage(safePage - 1);
+        updatePageUI(safePage);
+    }
+
+    function toggleFullscreen() {
+        const target = wrapper || flipbookElement;
+        if (!target) {
+            return;
+        }
+
+        if (!document.fullscreenElement) {
+            target.requestFullscreen().catch(function () {
+                showError('No se pudo activar pantalla completa.');
+            });
+            return;
+        }
+
+        document.exitFullscreen();
+    }
+
+    function updateFullscreenButton() {
+        if (!fullscreenBtn) {
+            return;
+        }
+
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = '✕';
+            fullscreenBtn.setAttribute('aria-label', 'Salir de pantalla completa');
+            return;
+        }
+
+        fullscreenBtn.textContent = '⛶';
+        fullscreenBtn.setAttribute('aria-label', 'Pantalla completa');
+    }
+
+    // ========== MOSTRAR FLIPBOOK CON TRANSICIÓN SUAVE ==========
+    function showFlipbook() {
+        if (!wrapper) return;
+
+        // Ocultar loading
+        if (loading) {
+            loading.style.display = 'none';
+            loading.classList.add('is-hidden');
+        }
+
+        // Mostrar flipbook con transición
+        wrapper.style.position = '';
+        wrapper.style.pointerEvents = '';
+        wrapper.style.visibility = 'visible';
+
+        // Pequeño delay para que el navegador procese el cambio de display
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                wrapper.style.opacity = '1';
+                wrapper.classList.add('is-ready');
+            });
+        });
     }
 
     function initFlipbook() {
@@ -109,9 +233,7 @@ document.addEventListener('DOMContentLoaded', function () {
         pageFlip.loadFromHTML(pages);
 
         pageFlip.on('flip', function (event) {
-            if (currentPage) {
-                currentPage.textContent = String(event.data + 1);
-            }
+            updatePageUI(event.data + 1);
         });
 
         if (prevBtn) {
@@ -126,23 +248,61 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        if (jumpPageBtn && jumpPageInput) {
+            jumpPageBtn.addEventListener('click', function () {
+                goToPage(jumpPageInput.value);
+            });
+
+            jumpPageInput.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    goToPage(jumpPageInput.value);
+                }
+            });
+
+            jumpPageInput.addEventListener('blur', function () {
+                const val = Number.parseInt(jumpPageInput.value, 10);
+                if (!Number.isNaN(val) && pageCount > 0) {
+                    if (val > pageCount) {
+                        jumpPageInput.value = String(pageCount);
+                    } else if (val < 1) {
+                        jumpPageInput.value = '1';
+                    }
+                }
+            });
+        }
+
+        if (fullscreenBtn) {
+            fullscreenBtn.addEventListener('click', toggleFullscreen);
+        }
+
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
+
         document.addEventListener('keydown', function (event) {
+            if (document.activeElement === jumpPageInput) {
+                return;
+            }
+
             if (event.key === 'ArrowLeft') {
+                event.preventDefault();
                 pageFlip.flipPrev();
             }
 
             if (event.key === 'ArrowRight') {
+                event.preventDefault();
                 pageFlip.flipNext();
+            }
+
+            if (event.key.toLowerCase() === 'f' && !event.ctrlKey && !event.metaKey) {
+                event.preventDefault();
+                toggleFullscreen();
             }
         });
 
-        if (loading) {
-            loading.classList.add('is-hidden');
-        }
+        // Mostrar flipbook solo cuando PageFlip ya está inicializado
+        showFlipbook();
 
-        if (wrapper) {
-            wrapper.classList.add('is-ready');
-        }
+        updatePageUI(1);
+        updateFullscreenButton();
     }
 
     async function startReader() {

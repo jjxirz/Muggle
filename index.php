@@ -525,7 +525,7 @@ $bookSections = array_chunk($pdfBooks, 5);
                 <p class="book-preview-author" id="bookPreviewAuthor">Autor</p>
                 <div class="book-preview-actions">
                    <a href="#" class="book-preview-read-btn" id="bookPreviewReadBtn">Comenzar lectura</a>
-                    <button type="button" class="book-preview-list-btn">Mi lista</button>
+                    
                 </div>
             </div>
         </div>

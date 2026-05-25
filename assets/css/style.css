@@ -371,7 +371,7 @@ body {
     transform: scale(1.02);
 }
 
-/* ==================== SELECTOR DE CASAS (abajo) ==================== */
+/* ==================== SELECTOR DE CASAS ==================== */
 .house-selector-section {
     margin: 3rem 0;
     text-align: center;
@@ -467,38 +467,54 @@ body {
     .container {
         padding: 0 20px;
     }
-    
+
     .hero-title {
         font-size: 2rem;
     }
-    
+
     .hero {
         min-height: 60vh;
     }
-    
+
     .book-card {
         width: 150px;
     }
-    
+
     .section-title {
         font-size: 1.2rem;
     }
-    
+
     .header-content {
         flex-direction: column;
         text-align: center;
     }
-    
+
     .logo .row {
         justify-content: center;
     }
-    
+
     .nav-menu ul {
         justify-content: center;
         flex-wrap: wrap;
     }
-    
+
     .user-name {
         display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-buttons {
+        flex-direction: column;
+    }
+
+    .btn {
+        justify-content: center;
+        width: 100%;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
