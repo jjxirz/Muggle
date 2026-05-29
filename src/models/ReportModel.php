@@ -205,4 +205,44 @@ class ReportModel
         }
         return $result;
     }
+
+    /** Usuarios nuevos registrados en los últimos $dias días */
+    public function usuariosNuevos(int $dias = 30): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(*) FROM usuarios
+             WHERE fecha_registro >= DATE_SUB(NOW(), INTERVAL :dias DAY)'
+        );
+        $stmt->execute(['dias' => $dias]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Usuarios "conectados": los que tienen al menos un registro de progreso
+     * en los últimos 7 días.
+     */
+    public function usuariosConectados(): int
+    {
+        $stmt = $this->db->prepare(
+            'SELECT COUNT(DISTINCT id_usuario) FROM progreso_lectura
+             WHERE fecha_actualizacion >= DATE_SUB(NOW(), INTERVAL 7 DAY)'
+        );
+        $stmt->execute();
+        return (int) $stmt->fetchColumn();
+    }
+
+    /** Plan con más suscripciones activas */
+    public function planMasContratado(): string
+    {
+        $stmt = $this->db->query(
+            'SELECT p.nombre, COUNT(s.id_suscripcion) AS total
+             FROM planes p
+             LEFT JOIN suscripciones s ON s.id_plan = p.id_plan AND s.estado = "activa"
+             GROUP BY p.id_plan
+             ORDER BY total DESC
+             LIMIT 1'
+        );
+        $row = $stmt->fetch();
+        return $row && $row['total'] > 0 ? $row['nombre'] : '—';
+    }
 }

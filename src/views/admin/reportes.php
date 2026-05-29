@@ -10,16 +10,18 @@ if (!in_array($dias, [7, 30, 90], true)) $dias = 30;
 
 $report = new ReportModel();
 
-$totalSesiones   = $report->totalSesiones($dias);
-$horasLeidas     = $report->horasLeidas($dias);
-$libroTop        = $report->libroMasLeido($dias);
-$retencion       = $report->retencion30d();
-$lecturaDiaria   = $report->lecturasPorDiaSemana($dias);
-$topLibros       = $report->topLibros($dias);
-$subs            = $report->suscripcionesPorPlan($dias);
-$progresoUsuarios= $report->progresoUsuarios();
+$libroTop         = $report->libroMasLeido($dias);
+$usuariosNuevos   = $report->usuariosNuevos($dias);
+$usuariosConect   = $report->usuariosConectados();
+$planTop          = $report->planMasContratado();
+$lecturaDiaria    = $report->lecturasPorDiaSemana($dias);
+$topLibros        = $report->topLibros($dias);
+$subs             = $report->suscripcionesPorPlan($dias);
+$progresoUsuarios = $report->progresoUsuarios();
 
-$hayDatos = $totalSesiones > 0;
+$totalSubs = array_sum(array_column($subs, 'cantidad'));
+$maxSubs   = $totalSubs > 0 ? max(array_column($subs, 'cantidad')) : 1;
+$hayDatos  = $report->totalSesiones($dias) > 0;
 
 $activePage = 'reportes';
 include __DIR__ . '/../layouts/sidebar.php';
@@ -41,63 +43,62 @@ include __DIR__ . '/../layouts/sidebar.php';
     </div>
 </div>
 
-<!-- ===== CONTENIDO ===== -->
 <div class="admin-content">
 
-    <?php if (!$hayDatos): ?>
-    <div style="padding:40px 16px; text-align:center; color:var(--color-gris-mid); font-size:13px; margin-bottom:24px">
-        <i class="fas fa-chart-bar" style="font-size:32px; opacity:0.2; display:block; margin-bottom:10px"></i>
-        Sin actividad de lectura registrada en este período.<br>
-        Los reportes se poblarán cuando los usuarios comiencen a leer.
-    </div>
-    <?php endif; ?>
-
-    <!-- Métricas -->
+    <!-- ── Cards de métricas ── -->
     <div class="row mb-4">
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-label">Sesiones este período</div>
-                <div class="stat-value"><?= number_format($totalSesiones) ?></div>
-                <div class="stat-sub stat-sub--neutral">
-                    <?= $totalSesiones === 0 ? 'Sin sesiones aún' : 'registradas' ?>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-sm-6 mb-3">
-            <div class="stat-card">
-                <div class="stat-label">Horas leídas</div>
-                <div class="stat-value"><?= number_format($horasLeidas) ?></div>
-                <div class="stat-sub stat-sub--neutral">
-                    <?= $horasLeidas === 0 ? 'Sin datos aún' : 'estimadas' ?>
-                </div>
-            </div>
-        </div>
+
+        <!-- Libro más leído -->
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Libro más leído</div>
                 <?php if ($libroTop['titulo']): ?>
-                    <div class="stat-value" style="font-size:1rem; line-height:1.3">
+                    <div class="stat-value" style="font-size:.95rem; line-height:1.3">
                         <?= htmlspecialchars($libroTop['titulo']) ?>
                     </div>
                     <div class="stat-sub stat-sub--neutral"><?= $libroTop['lecturas'] ?> lecturas</div>
                 <?php else: ?>
-                    <div class="stat-value" style="font-size:1rem; opacity:.4">—</div>
+                    <div class="stat-value" style="opacity:.35">—</div>
                     <div class="stat-sub stat-sub--neutral">Sin datos aún</div>
                 <?php endif; ?>
             </div>
         </div>
+
+        <!-- Usuarios nuevos -->
         <div class="col-md-3 col-sm-6 mb-3">
             <div class="stat-card">
-                <div class="stat-label">Retención 30d</div>
-                <div class="stat-value"><?= $retencion ?>%</div>
+                <div class="stat-label">Usuarios nuevos</div>
+                <div class="stat-value"><?= $usuariosNuevos ?></div>
                 <div class="stat-sub stat-sub--neutral">
-                    <?= $retencion === 0 ? 'Sin usuarios activos' : 'de usuarios activos' ?>
+                    <?= $usuariosNuevos === 0 ? 'Sin registros en el período' : 'registrados en el período' ?>
                 </div>
+            </div>
+        </div>
+
+        <!-- Usuarios conectados -->
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-label">Usuarios conectados</div>
+                <div class="stat-value"><?= $usuariosConect ?></div>
+                <div class="stat-sub stat-sub--neutral">
+                    <?= $usuariosConect === 0 ? 'Ninguno activo recientemente' : 'activos últimos 7 días' ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plan más contratado -->
+        <div class="col-md-3 col-sm-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-label">Plan más contratado</div>
+                <div class="stat-value" style="font-size:1.1rem">
+                    <?= htmlspecialchars($planTop) ?>
+                </div>
+                <div class="stat-sub stat-sub--neutral">suscripción activa</div>
             </div>
         </div>
     </div>
 
-    <!-- Lecturas por día de la semana -->
+    <!-- ── Lecturas por día ── -->
     <div class="admin-card mb-4">
         <div class="admin-card__header">Lecturas por día de la semana</div>
         <div class="admin-card__body">
@@ -119,6 +120,7 @@ include __DIR__ . '/../layouts/sidebar.php';
     </div>
 
     <div class="row mb-4">
+
         <!-- Top libros -->
         <div class="col-md-6 mb-3">
             <div class="admin-card h-100">
@@ -149,23 +151,25 @@ include __DIR__ . '/../layouts/sidebar.php';
             </div>
         </div>
 
-        <!-- Suscripciones por plan -->
+        <!-- Suscripciones por plan — barras de progreso -->
         <div class="col-md-6 mb-3">
             <div class="admin-card h-100">
-                <div class="admin-card__header">Nuevas suscripciones por plan</div>
+                <div class="admin-card__header">Suscripciones activas por plan</div>
                 <div class="admin-card__body">
-                    <?php if (empty($subs) || array_sum(array_column($subs, 'cantidad')) === 0): ?>
-                        <p class="text-muted" style="font-size:13px">Sin nuevas suscripciones en este período.</p>
+                    <?php if ($totalSubs === 0): ?>
+                        <p class="text-muted" style="font-size:13px">Sin suscripciones activas aún.</p>
                     <?php else: ?>
-                        <?php foreach ($subs as $s): ?>
-                        <div class="bar-row">
-                            <span class="bar-label"><?= htmlspecialchars($s['plan']) ?></span>
-                            <div class="bar-track">
-                                <div class="bar-fill"
-                                     style="width: <?= $s['pct'] ?>%; background: <?= $s['color'] ?>">
-                                </div>
+                        <?php foreach ($subs as $s):
+                            $pct = $maxSubs > 0 ? round($s['cantidad'] / $maxSubs * 100) : 0;
+                        ?>
+                        <div class="subs-row">
+                            <div class="subs-header">
+                                <span class="subs-plan"><?= htmlspecialchars($s['plan']) ?></span>
+                                <span class="subs-count"><?= $s['cantidad'] ?></span>
                             </div>
-                            <span class="bar-val"><?= $s['cantidad'] ?></span>
+                            <div class="subs-track">
+                                <div class="subs-fill" style="width:<?= $pct ?>%"></div>
+                            </div>
                         </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -174,7 +178,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         </div>
     </div>
 
-    <!-- Progreso de lectura por usuario -->
+    <!-- ── Progreso de lectura por usuario ── -->
     <div class="admin-card">
         <div class="admin-card__header">Progreso de lectura por usuario</div>
         <div class="admin-card__body p-0">
@@ -200,10 +204,12 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <td class="text-secondary"><?= htmlspecialchars($u['libro']) ?></td>
                             <td>
                                 <div class="progress-cell">
-                                    <div class="progress-track">
-                                        <div class="progress-fill" style="width: <?= $u['pct'] ?>%"></div>
+                                    <div class="subs-track" style="flex:1">
+                                        <div class="subs-fill" style="width:<?= $u['pct'] ?>%"></div>
                                     </div>
-                                    <span class="progress-label"><?= $u['pct'] ?>%</span>
+                                    <span class="subs-count" style="min-width:36px; text-align:right">
+                                        <?= $u['pct'] ?>%
+                                    </span>
                                 </div>
                             </td>
                             <td class="text-secondary small"><?= htmlspecialchars($u['ultima']) ?></td>
@@ -217,5 +223,29 @@ include __DIR__ . '/../layouts/sidebar.php';
     </div>
 
 </div><!-- /admin-content -->
+
+<style>
+/* Barras de suscripciones / progreso */
+.subs-row       { margin-bottom: 14px; }
+.subs-row:last-child { margin-bottom: 0; }
+.subs-header    { display: flex; justify-content: space-between; margin-bottom: 5px; }
+.subs-plan      { font-size: 13px; font-weight: 500; color: var(--color-black); }
+.subs-count     { font-size: 12px; color: var(--color-gris-dark); font-variant-numeric: tabular-nums; }
+.subs-track     {
+    width: 100%;
+    height: 8px;
+    background: #e5e3dc;   /* gris claro */
+    border-radius: 99px;
+    overflow: hidden;
+}
+.subs-fill      {
+    height: 100%;
+    background: #111110;   /* negro */
+    border-radius: 99px;
+    transition: width .4s ease;
+}
+/* reutilizar subs-track en progress-cell */
+.progress-cell  { display: flex; align-items: center; gap: 8px; }
+</style>
 
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
