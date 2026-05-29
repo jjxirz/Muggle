@@ -106,6 +106,28 @@ function getPdfSizeLabel(string $filePath): string
     return round($bytes / 1024) . ' KB';
 }
 
+function normalizeBookPlan(?string $plan, int $index): array
+{
+    $plans = [
+        'gratis' => ['label' => 'Gratis', 'class' => 'free'],
+        'basico' => ['label' => 'Básico', 'class' => 'basico'],
+        'plus' => ['label' => 'Plus', 'class' => 'plus'],
+        'premium' => ['label' => 'Premium', 'class' => 'premium'],
+    ];
+
+    $normalized = strtolower(trim((string) $plan));
+    $normalized = str_replace(['á', 'é', 'í', 'ó', 'ú'], ['a', 'e', 'i', 'o', 'u'], $normalized);
+
+    if ($normalized !== '' && isset($plans[$normalized])) {
+        return $plans[$normalized];
+    }
+
+    $cycle = ['gratis', 'basico', 'plus', 'premium'];
+    $fallback = $cycle[$index % count($cycle)];
+
+    return $plans[$fallback];
+}
+
 /**
  * @return array{title:string, author:string, category:string, year:string, tags:string, description:string}
  */
@@ -277,10 +299,12 @@ function getPdfBooksFromFolder(string $folderPath, string $assetUrl, string $ima
     $books = [];
 
     foreach ($pdfFiles as $file) {
+        $bookIndex = count($books);
         $filePath = $folderPath . DIRECTORY_SEPARATOR . $file;
         $title = cleanPdfTitle($file);
         $meta = guessBookMeta($file, $title);
         $cover = findBookImage($file, $meta['title'], $imageFolderPath, $imageUrl);
+        $plan = normalizeBookPlan($meta['plan'] ?? null, $bookIndex);
 
         $books[] = [
             'title' => $meta['title'],
@@ -296,6 +320,8 @@ function getPdfBooksFromFolder(string $folderPath, string $assetUrl, string $ima
             'reader' => app_url('reader.php') . '?book=' . rawurlencode($file),
             'file' => 'assets/books/' . $file,
             'type' => 'pdf',
+            'plan' => $plan['label'],
+            'plan_class' => $plan['class'],
         ];
     }
 
@@ -317,6 +343,8 @@ function renderBookCard(array $book): void
     $banner = $book['banner'] ?? '';
     $tags = $book['tags'] ?? $category;
     $type = $book['type'] ?? 'pdf';
+    $plan = $book['plan'] ?? 'Gratis';
+    $planClass = $book['plan_class'] ?? 'free';
 ?>
     <div class="book-card js-book-preview"
         role="button"
@@ -335,6 +363,7 @@ function renderBookCard(array $book): void
         data-banner="<?php echo e($banner); ?>"
         data-tags="<?php echo e($tags); ?>">
         <div class="book-cover">
+            <span class="book-plan-badge book-plan-badge--<?php echo e($planClass); ?>"><?php echo e($plan); ?></span>
             <?php if ($cover !== ''): ?>
                 <img src="<?php echo e($cover); ?>" alt="<?php echo e($title); ?>" class="cover-img">
             <?php else: ?>
@@ -580,6 +609,52 @@ $bookSections = array_chunk($pdfBooks, 5);
             background-color: <?php echo $themeEnabled ? $current_house['highlight'] : '#f5f4f0'; ?> !important;
         }
 
+        .book-plan-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 2;
+
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 0.28rem 0.55rem;
+            border-radius: 999px;
+
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            line-height: 1;
+
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.32);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            backdrop-filter: blur(6px);
+        }
+
+        .book-plan-badge--free {
+            background: rgba(20, 20, 20, 0.88);
+            color: #f3f3f3;
+        }
+
+        .book-plan-badge--basico {
+            background: rgba(240, 232, 214, 0.94);
+            color: #312d27;
+        }
+
+        .book-plan-badge--plus {
+            background: rgba(162, 129, 58, 0.92);
+            color: #ffffff;
+        }
+
+        .book-plan-badge--premium {
+            background: linear-gradient(135deg, #d4af37 0%, #f7e7a1 50%, #b8860b 100%);
+            color: #1f1600;
+            border-color: rgba(255, 244, 196, 0.78);
+            box-shadow: 0 10px 24px rgba(212, 175, 55, 0.32);
+        }
+
         .btn-primary,
         .hero-badge,
         .play-btn,
@@ -625,29 +700,84 @@ $bookSections = array_chunk($pdfBooks, 5);
         }
 
         .featured-hero .hero-slide {
-            position: relative;
+            position: absolute;
+            inset: 0;
             width: 100%;
             min-height: 90vh;
             background-color: <?php echo $themeEnabled ? $current_house['color'] : '#111110'; ?>;
             background-position: center;
             background-size: cover;
-            display: none;
+            opacity: 0;
+            transform: scale(1.03);
+            filter: saturate(0.9);
+            pointer-events: none;
+            transition: opacity 1.8s ease-in-out, transform 2.4s cubic-bezier(0.22, 1, 0.36, 1), filter 2.2s ease;
         }
 
         .featured-hero .hero-slide.is-active {
-            display: grid;
-            place-items: center;
+            opacity: 1;
+            transform: scale(1);
+            filter: saturate(1);
+            pointer-events: auto;
             z-index: 2;
-            animation: heroFadeIn 0.85s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        @keyframes heroFadeIn {
-            from {
-                opacity: 0;
-            }
+        .featured-hero .hero-slide .featured-hero-panel {
+            opacity: 0;
+            transform: translateY(20px) scale(0.99);
+            transition: opacity 1s ease 0.14s, transform 1.25s cubic-bezier(0.22, 1, 0.36, 1) 0.14s;
+        }
 
-            to {
-                opacity: 1;
+        .featured-hero .hero-slide .hero-badge,
+        .featured-hero .hero-slide .hero-title,
+        .featured-hero .hero-slide .hero-description,
+        .featured-hero .hero-slide .hero-synopsis,
+        .featured-hero .hero-slide .hero-buttons {
+            opacity: 0;
+            transform: translateY(14px);
+            transition: opacity 0.8s ease, transform 1s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .featured-hero .hero-slide .hero-badge {
+            transition-delay: 0.24s;
+        }
+
+        .featured-hero .hero-slide .hero-title {
+            transition-delay: 0.34s;
+        }
+
+        .featured-hero .hero-slide .hero-description {
+            transition-delay: 0.44s;
+        }
+
+        .featured-hero .hero-slide .hero-synopsis {
+            transition-delay: 0.54s;
+        }
+
+        .featured-hero .hero-slide .hero-buttons {
+            transition-delay: 0.64s;
+        }
+
+        .featured-hero .hero-slide.is-active .featured-hero-panel,
+        .featured-hero .hero-slide.is-active .hero-badge,
+        .featured-hero .hero-slide.is-active .hero-title,
+        .featured-hero .hero-slide.is-active .hero-description,
+        .featured-hero .hero-slide.is-active .hero-synopsis,
+        .featured-hero .hero-slide.is-active .hero-buttons {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .featured-hero .hero-slide,
+            .featured-hero .hero-slide .featured-hero-panel,
+            .featured-hero .hero-slide .hero-badge,
+            .featured-hero .hero-slide .hero-title,
+            .featured-hero .hero-slide .hero-description,
+            .featured-hero .hero-slide .hero-synopsis,
+            .featured-hero .hero-slide .hero-buttons {
+                transition: none !important;
+                transform: none !important;
             }
         }
 
@@ -1020,6 +1150,11 @@ $bookSections = array_chunk($pdfBooks, 5);
                 <div class="footer-col">
                     <h4>Hogwarts</h4>
                     <p>Hogwarts · Biblioteca digital.<br>Obras disponibles para lectura continua.</p>
+
+                    <button type="button" class="footer-dev-btn" data-open-developers-modal>
+                        <i class="fas fa-users-cog"></i>
+                        Ver desarrolladores
+                    </button>
                 </div>
                 <div class="footer-col">
                     <h4>Explorar</h4>
@@ -1040,9 +1175,12 @@ $bookSections = array_chunk($pdfBooks, 5);
             </div>
             <div class="copyright">
                 <p>© <?php echo date('Y'); ?> Hogwarts · <?php echo $themeEnabled ? 'Tema ' . htmlspecialchars($current_house['name']) : 'Tema clásico'; ?></p>
+                <p class="footer-dev-credit">Desarrollado por estudiantes de Ingeniería en Sistemas.</p>
             </div>
         </div>
     </footer>
+
+    <?php require_once __DIR__ . '/includes/developers-modal.php'; ?>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1079,7 +1217,7 @@ $bookSections = array_chunk($pdfBooks, 5);
                     autoRotate = setInterval(() => {
                         const next = (current + 1) % slides.length;
                         showSlide(next);
-                    }, 5500);
+                    }, 7600);
                 }
 
                 dots.forEach((dot, idx) => {

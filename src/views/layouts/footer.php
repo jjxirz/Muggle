@@ -4,8 +4,16 @@
 
 <footer class="admin-footer">
     <span>Hogwarts &copy; <?= date('Y') ?> — Panel administrativo</span>
+
+    <button type="button" class="footer-dev-btn footer-dev-btn--admin" data-open-developers-modal>
+        <i class="fas fa-users-cog"></i>
+        Ver desarrolladores
+    </button>
+
     <span>Biblioteca digital</span>
 </footer>
+
+<?php require_once __DIR__ . '/../../../includes/developers-modal.php'; ?>
 
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.4/dist/jquery.min.js"></script>

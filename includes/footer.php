@@ -21,6 +21,11 @@ if (!isset($current_house)) {
                     Biblioteca en línea con estilo de streaming.<br>
                     Tus libros favoritos en un solo lugar.
                 </p>
+
+                <button type="button" class="footer-dev-btn" data-open-developers-modal>
+                    <i class="fas fa-users-cog"></i>
+                    Ver desarrolladores
+                </button>
             </div>
 
             <div class="footer-col">
@@ -55,9 +60,14 @@ if (!isset($current_house)) {
             <p>
                 © <?= date('Y'); ?> <?= h($current_house['name']); ?> Libraries · Sistema de biblioteca en línea
             </p>
+            <p class="footer-dev-credit">
+                Desarrollado por estudiantes de Ingeniería en Sistemas.
+            </p>
         </div>
     </div>
 </footer>
+
+<?php require_once __DIR__ . '/developers-modal.php'; ?>
 
 </body>
 </html>

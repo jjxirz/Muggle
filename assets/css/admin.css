@@ -336,6 +336,187 @@ body.sidebar-collapsed .admin-footer {
     margin-left: var(--sidebar-collapsed);
 }
 
+.footer-dev-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 0.5px solid var(--color-gris-pale);
+    background: var(--color-crema-light);
+    color: var(--color-negro-soft);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background var(--transition), border-color var(--transition), color var(--transition), transform var(--transition);
+}
+
+.footer-dev-btn:hover {
+    background: var(--color-crema-mid);
+    color: var(--color-black);
+    transform: translateY(-1px);
+}
+
+.footer-dev-btn--admin {
+    margin: 0 12px;
+}
+
+body.modal-open {
+    overflow: hidden;
+}
+
+.developers-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(17, 17, 16, 0.74);
+}
+
+.developers-modal-overlay.is-visible {
+    display: flex;
+}
+
+.developers-modal {
+    width: min(560px, 100%);
+    max-height: min(88vh, 720px);
+    overflow: auto;
+    border-radius: 14px;
+    background: var(--color-white);
+    color: var(--color-negro-soft);
+    border: 0.5px solid var(--color-gris-pale);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+}
+
+.developers-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 18px 20px 16px;
+    border-bottom: 0.5px solid var(--color-crema-mid);
+}
+
+.developers-modal-label {
+    display: inline-block;
+    margin-bottom: 0.25rem;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--color-gris-mid);
+}
+
+.developers-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--color-black);
+}
+
+.developers-modal-close {
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--color-crema-light);
+    color: var(--color-gris-dark);
+    cursor: pointer;
+}
+
+.developers-modal-body {
+    padding: 18px 20px 12px;
+}
+
+.developers-company-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: var(--color-crema-light);
+}
+
+.developers-company-box i {
+    font-size: 1.45rem;
+    color: #c29d2e;
+}
+
+.developers-company-box strong,
+.developers-company-box span,
+.developers-modal-body p,
+.developer-item {
+    display: block;
+}
+
+.developers-company-box strong {
+    margin-bottom: 0.12rem;
+    font-size: 0.92rem;
+    color: var(--color-black);
+}
+
+.developers-company-box span,
+.developers-modal-body p {
+    color: var(--color-gris-dark);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.developers-modal-body p {
+    margin: 0 0 16px;
+}
+
+.developers-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.developer-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 10px;
+    background: var(--color-crema-light);
+    font-weight: 600;
+    color: var(--color-negro-soft);
+}
+
+.developer-item i {
+    color: #c29d2e;
+}
+
+.developers-modal-footer {
+    padding: 0 20px 20px;
+}
+
+.developers-modal-action {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 0.86rem 1rem;
+    background: linear-gradient(135deg, #d4af37 0%, #f7e7a1 50%, #b8860b 100%);
+    color: #1f1600;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+@media (max-width: 520px) {
+    .developers-list {
+        grid-template-columns: 1fr;
+    }
+
+    .developers-modal-header,
+    .developers-modal-body,
+    .developers-modal-footer {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+
 /* =====================================================
    BOTONES
    ===================================================== */
