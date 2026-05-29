@@ -54,12 +54,12 @@ if (!isset($activePage)) $activePage = '';
                 <i class="fas fa-chart-bar"></i>
                 <span>Reportes</span>
             </a>
-           <a href="../admin/admin_books.php"
+           <!--<a href="../admin/admin_books.php"
                class="sidebar-item <?= $activePage === 'admin_books' ? 'active' : '' ?>">
                 <i class="fas fa-book"></i>
                 <span>Administrar Libros</span>
             </a>
-            <!--<a href="../admin/logs.php"
+            <a href="../admin/logs.php"
                class="sidebar-item <?= $activePage === 'logs' ? 'active' : '' ?>">
                 <i class="fas fa-terminal"></i>
                 <span></span>
