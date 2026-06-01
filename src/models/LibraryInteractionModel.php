@@ -96,10 +96,13 @@ class LibraryInteractionModel
     public function getFavoritesByUser(int $userId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT l.titulo, l.autor, c.nombre AS categoria
+            'SELECT l.titulo, l.autor, l.descripcion, l.portada, l.archivo, l.tipo, l.fecha_publicado,
+                    c.nombre AS categoria, p.nombre AS plan_nombre
              FROM favoritos f
              INNER JOIN libros l ON l.id_libro = f.id_libro
              LEFT JOIN categorias c ON c.id_categoria = l.id_categoria
+             LEFT JOIN suscripciones s ON s.id_usuario = :user_id AND s.estado = "activa"
+             LEFT JOIN planes p ON p.id_plan = s.id_plan
              WHERE f.id_usuario = :user_id
              ORDER BY f.fecha_agregado DESC
              LIMIT 12'
@@ -112,9 +115,14 @@ class LibraryInteractionModel
     public function getRecentProgressByUser(int $userId): array
     {
         $stmt = $this->db->prepare(
-            'SELECT l.titulo, l.autor, p.porcentaje, p.pagina_actual, p.fecha_actualizacion
+            'SELECT l.titulo, l.autor, l.descripcion, l.portada, l.archivo, l.tipo, l.fecha_publicado,
+                    c.nombre AS categoria, p.porcentaje, p.pagina_actual, p.fecha_actualizacion,
+                    pl.nombre AS plan_nombre
              FROM progreso_lectura p
              INNER JOIN libros l ON l.id_libro = p.id_libro
+             LEFT JOIN categorias c ON c.id_categoria = l.id_categoria
+             LEFT JOIN suscripciones s ON s.id_usuario = :user_id AND s.estado = "activa"
+             LEFT JOIN planes pl ON pl.id_plan = s.id_plan
              WHERE p.id_usuario = :user_id
              ORDER BY p.fecha_actualizacion DESC
              LIMIT 12'

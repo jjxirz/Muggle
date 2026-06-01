@@ -1,36 +1,56 @@
 <?php
 require_once __DIR__ . '/src/lib/Auth.php';
+require_once __DIR__ . '/includes/catalog_helpers.php';
 
 require_login();
 
 $page_title = 'Categorías';
 $active_page = 'categorias';
 
-$categories = [
-    ['name' => 'Clásicos', 'desc' => 'Obras imprescindibles de la literatura universal.'],
-    ['name' => 'Fantasía', 'desc' => 'Historias mágicas con mundos extraordinarios.'],
-    ['name' => 'Ciencia ficción', 'desc' => 'Futuro, tecnología y sociedades alternativas.'],
-    ['name' => 'Misterio', 'desc' => 'Investigación, intriga y tramas de tensión.'],
-    ['name' => 'Historia', 'desc' => 'Narrativas basadas en hechos y procesos históricos.'],
-    ['name' => 'Filosofía', 'desc' => 'Pensamiento crítico y reflexión sobre la condición humana.'],
-];
+$baseUrl = app_base_url();
+$assetUrl = $baseUrl . '/assets';
+$bookImagesPath = __DIR__ . '/assets/img-books';
+$bookImagesUrl = $assetUrl . '/img-books';
+$books = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
+
+$groupedBooks = [];
+foreach ($books as $book) {
+    $cat = (string) ($book['category'] ?? 'Lectura digital');
+    if (!isset($groupedBooks[$cat])) {
+        $groupedBooks[$cat] = [];
+    }
+    $groupedBooks[$cat][] = $book;
+}
+
+$extra_stylesheets = ['assets/css/book-preview.css'];
 
 require_once __DIR__ . '/includes/header.php';
 ?>
 <section class="container">
     <div class="page-banner">
         <h2>Categorías</h2>
-        <p>Selecciona una categoría para encontrar lecturas afines a tu estilo.</p>
+        <p>Explora el catálogo por temática y abre la vista previa desde cada tarjeta.</p>
     </div>
 
-    <div class="stack-grid">
-        <?php foreach ($categories as $category): ?>
-            <article class="category-card content-card">
-                <strong><?php echo htmlspecialchars($category['name'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                <p class="content-card-meta"><?php echo htmlspecialchars($category['desc'], ENT_QUOTES, 'UTF-8'); ?></p>
-                <a class="view-all" href="explorar.php">Explorar</a>
-            </article>
+    <?php if (empty($groupedBooks)): ?>
+        <article class="category-card">No hay libros cargados todavía.</article>
+    <?php else: ?>
+        <?php foreach ($groupedBooks as $categoryName => $categoryBooks): ?>
+            <div class="row-section">
+                <div class="section-header">
+                    <h3 class="section-title"><?php echo htmlspecialchars($categoryName, ENT_QUOTES, 'UTF-8'); ?></h3>
+                    <a href="explorar.php" class="view-all">Ver todo</a>
+                </div>
+
+                <div class="books-carousel">
+                    <?php foreach ($categoryBooks as $book): ?>
+                        <?php renderBookCard($book); ?>
+                    <?php endforeach; ?>
+                </div>
+            </div>
         <?php endforeach; ?>
-    </div>
+    <?php endif; ?>
 </section>
+
+<?php require_once __DIR__ . '/includes/public-book-preview.php'; ?>
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
