@@ -20,15 +20,168 @@ document.addEventListener('DOMContentLoaded', function () {
     const description = document.getElementById('bookPreviewDescription');
     const tags = document.getElementById('bookPreviewTags');
     const readBtn = document.getElementById('bookPreviewReadBtn');
+    const readingListBtn = document.getElementById('bookPreviewReadingListBtn');
+    const readingListBtnText = readingListBtn ? readingListBtn.querySelector('span') : null;
+    const readingListBtnIcon = readingListBtn ? readingListBtn.querySelector('i') : null;
     const favoriteBtn = document.getElementById('bookPreviewFavoriteBtn');
     const favoriteBtnText = favoriteBtn ? favoriteBtn.querySelector('span') : null;
     const favoriteBtnIcon = favoriteBtn ? favoriteBtn.querySelector('i') : null;
 
     const apiUrl = backdrop.getAttribute('data-api-url') || '';
     const csrfToken = backdrop.getAttribute('data-csrf-token') || '';
+    const favoriteStatusCache = new Map();
+    const progressStatusCache = new Map();
 
     let activeBookPayload = null;
+    let activeCard = null;
+    let readingListState = false;
     let favoriteState = false;
+
+    function setCardFavoriteState(card, isFavorite) {
+        if (!card) {
+            return;
+        }
+
+        const indicator = card.querySelector('.book-favorite-indicator');
+        card.classList.toggle('is-favorite-card', Boolean(isFavorite));
+
+        if (indicator) {
+            indicator.classList.toggle('is-visible', Boolean(isFavorite));
+        }
+    }
+
+    function setCardProgressState(card, hasProgress) {
+        if (!card) {
+            return;
+        }
+
+        const indicator = card.querySelector('.book-progress-indicator');
+        card.classList.toggle('is-progress-card', Boolean(hasProgress));
+
+        if (indicator) {
+            indicator.classList.toggle('is-visible', Boolean(hasProgress));
+        }
+    }
+
+    function syncFavoriteStateAcrossCards(payload, isFavorite) {
+        if (!payload) {
+            return;
+        }
+
+        const payloadKey = [payload.file || '', payload.title || '', payload.author || ''].join('||').toLowerCase();
+
+        document.querySelectorAll('.js-book-preview').forEach(function (card) {
+            const cardPayload = buildBookPayload(card.dataset);
+            const cardKey = [cardPayload.file || '', cardPayload.title || '', cardPayload.author || ''].join('||').toLowerCase();
+
+            if (cardKey === payloadKey) {
+                setCardFavoriteState(card, isFavorite);
+            }
+        });
+    }
+
+    function syncProgressStateAcrossCards(payload, hasProgress) {
+        if (!payload) {
+            return;
+        }
+
+        const payloadKey = [payload.file || '', payload.title || '', payload.author || ''].join('||').toLowerCase();
+
+        document.querySelectorAll('.js-book-preview').forEach(function (card) {
+            const cardPayload = buildBookPayload(card.dataset);
+            const cardKey = [cardPayload.file || '', cardPayload.title || '', cardPayload.author || ''].join('||').toLowerCase();
+
+            if (cardKey === payloadKey) {
+                setCardProgressState(card, hasProgress);
+            }
+        });
+    }
+
+    async function refreshCardFavoriteState(card) {
+        if (!card || !apiUrl) {
+            return;
+        }
+
+        const payload = buildBookPayload(card.dataset);
+        if (!payload.title && !payload.file) {
+            return;
+        }
+
+        const cacheKey = [payload.file || '', payload.title || '', payload.author || ''].join('||').toLowerCase();
+        if (favoriteStatusCache.has(cacheKey)) {
+            setCardFavoriteState(card, favoriteStatusCache.get(cacheKey));
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                action: 'favorite_status',
+                file: payload.file,
+                title: payload.title,
+                author: payload.author,
+                description: payload.description,
+                type: payload.type
+            });
+
+            const response = await fetch(apiUrl + '?' + params.toString(), {
+                credentials: 'same-origin'
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                return;
+            }
+
+            const isFavorite = Boolean(result.data.is_favorite);
+            favoriteStatusCache.set(cacheKey, isFavorite);
+            setCardFavoriteState(card, isFavorite);
+        } catch (error) {
+            // Do not block the UI if indicator status cannot be fetched.
+        }
+    }
+
+    async function refreshCardProgressState(card) {
+        if (!card || !apiUrl) {
+            return;
+        }
+
+        const payload = buildBookPayload(card.dataset);
+        if (!payload.title && !payload.file) {
+            return;
+        }
+
+        const cacheKey = [payload.file || '', payload.title || '', payload.author || ''].join('||').toLowerCase();
+        if (progressStatusCache.has(cacheKey)) {
+            setCardProgressState(card, progressStatusCache.get(cacheKey));
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                action: 'progress_status',
+                file: payload.file,
+                title: payload.title,
+                author: payload.author,
+                description: payload.description,
+                type: payload.type
+            });
+
+            const response = await fetch(apiUrl + '?' + params.toString(), {
+                credentials: 'same-origin'
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                return;
+            }
+
+            const hasProgress = Boolean(result.data.has_progress);
+            progressStatusCache.set(cacheKey, hasProgress);
+            setCardProgressState(card, hasProgress);
+        } catch (error) {
+            // Keep cards usable even if status check fails.
+        }
+    }
 
     function buildBookPayload(data) {
         return {
@@ -40,6 +193,26 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
+    function setReadingListState(inReadingList) {
+        readingListState = Boolean(inReadingList);
+
+        if (!readingListBtn) {
+            return;
+        }
+
+        if (readingListBtnText) {
+            readingListBtnText.textContent = readingListState ? 'Quitar de lectura' : 'Agregar a lectura';
+        }
+
+        readingListBtn.classList.toggle('is-reading-list', readingListState);
+        readingListBtn.setAttribute('aria-pressed', readingListState ? 'true' : 'false');
+
+        if (readingListBtnIcon) {
+            readingListBtnIcon.classList.remove('fas', 'far');
+            readingListBtnIcon.classList.add(readingListState ? 'fas' : 'far', 'fa-bookmark');
+        }
+    }
+
     function setFavoriteState(isFavorite) {
         favoriteState = Boolean(isFavorite);
 
@@ -48,15 +221,56 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (favoriteBtnText) {
-            favoriteBtnText.textContent = favoriteState ? 'Quitar de mi lista' : 'Agregar a mi lista';
+            favoriteBtnText.textContent = 'Favorito';
         }
 
         favoriteBtn.classList.toggle('is-favorite', favoriteState);
         favoriteBtn.setAttribute('aria-pressed', favoriteState ? 'true' : 'false');
+        favoriteBtn.setAttribute('aria-label', favoriteState ? 'Quitar favorito' : 'Marcar favorito');
 
         if (favoriteBtnIcon) {
             favoriteBtnIcon.classList.remove('fas', 'far');
-            favoriteBtnIcon.classList.add(favoriteState ? 'fas' : 'far', 'fa-heart');
+            favoriteBtnIcon.classList.add(favoriteState ? 'fas' : 'far', 'fa-star');
+        }
+    }
+
+    function notify(type, message, timeout) {
+        if (window.AppNotify && typeof window.AppNotify[type] === 'function') {
+            window.AppNotify[type](message, { timeout: timeout || 2200 });
+            return;
+        }
+
+        console.warn(message);
+    }
+
+    async function refreshReadingListButton(payload) {
+        if (!readingListBtn || !payload || !apiUrl) {
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                action: 'reading_list_status',
+                file: payload.file,
+                title: payload.title,
+                author: payload.author,
+                description: payload.description,
+                type: payload.type
+            });
+
+            const response = await fetch(apiUrl + '?' + params.toString(), {
+                credentials: 'same-origin'
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.ok) {
+                setReadingListState(false);
+                return;
+            }
+
+            setReadingListState(Boolean(result.data.in_reading_list));
+        } catch (error) {
+            setReadingListState(false);
         }
     }
 
@@ -106,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const bookPdf = data.pdf || '';
         const bookReader = data.reader || '';
         const bookCover = data.cover || '';
+        activeCard = card;
         activeBookPayload = buildBookPayload(data);
 
         setText(title, bookTitle, 'Obra sin identificar');
@@ -180,8 +395,12 @@ document.addEventListener('DOMContentLoaded', function () {
             readBtn.style.opacity = '0.55';
         }
 
+        setReadingListState(false);
         setFavoriteState(false);
-        refreshFavoriteButton(activeBookPayload);
+
+        const pendingReadingList = refreshReadingListButton(activeBookPayload);
+        const pendingFavorite = refreshFavoriteButton(activeBookPayload);
+        Promise.allSettled([pendingReadingList, pendingFavorite]);
 
         backdrop.classList.add('is-open');
         backdrop.setAttribute('aria-hidden', 'false');
@@ -193,9 +412,15 @@ document.addEventListener('DOMContentLoaded', function () {
         backdrop.classList.remove('is-open');
         backdrop.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('preview-open');
+        activeCard = null;
     }
 
     document.querySelectorAll('.js-book-preview').forEach(function (card) {
+        setCardProgressState(card, false);
+        setCardFavoriteState(card, false);
+        refreshCardProgressState(card);
+        refreshCardFavoriteState(card);
+
         card.addEventListener('click', function (event) {
             event.preventDefault();
             openPreview(card);
@@ -210,6 +435,54 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     closeBtn.addEventListener('click', closePreview);
+
+    if (readingListBtn) {
+        readingListBtn.addEventListener('click', async function () {
+            if (!activeBookPayload || !csrfToken || !apiUrl) {
+                return;
+            }
+
+            const previousState = readingListState;
+            setReadingListState(!previousState);
+
+            const payload = new URLSearchParams({
+                action: 'toggle_reading_list',
+                csrf_token: csrfToken,
+                file: activeBookPayload.file,
+                title: activeBookPayload.title,
+                author: activeBookPayload.author,
+                description: activeBookPayload.description,
+                type: activeBookPayload.type
+            });
+
+            readingListBtn.disabled = true;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: payload.toString()
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.ok) {
+                    throw new Error('No se pudo actualizar la lista de lectura.');
+                }
+
+                const addedToReadingList = Boolean(result.data.in_reading_list);
+                setReadingListState(addedToReadingList);
+                notify('success', addedToReadingList ? 'Agregado a lista de lectura' : 'Quitado de lista de lectura', 1900);
+            } catch (error) {
+                setReadingListState(previousState);
+                notify('error', 'No se pudo actualizar tu lista de lectura en este momento.', 2600);
+            } finally {
+                readingListBtn.disabled = false;
+            }
+        });
+    }
 
     if (favoriteBtn) {
         favoriteBtn.addEventListener('click', async function () {
@@ -247,10 +520,27 @@ document.addEventListener('DOMContentLoaded', function () {
                     throw new Error('No se pudo actualizar favoritos.');
                 }
 
-                setFavoriteState(Boolean(result.data.is_favorite));
+                const updatedFavoriteState = Boolean(result.data.is_favorite);
+                setFavoriteState(updatedFavoriteState);
+
+                if (activeBookPayload) {
+                    const cacheKey = [
+                        activeBookPayload.file || '',
+                        activeBookPayload.title || '',
+                        activeBookPayload.author || ''
+                    ].join('||').toLowerCase();
+                    favoriteStatusCache.set(cacheKey, updatedFavoriteState);
+                }
+
+                if (activeCard) {
+                    setCardFavoriteState(activeCard, updatedFavoriteState);
+                }
+
+                syncFavoriteStateAcrossCards(activeBookPayload, updatedFavoriteState);
+                notify('success', updatedFavoriteState ? 'Libro agregado a favorito' : 'Libro quitado de favorito', 1900);
             } catch (error) {
                 setFavoriteState(previousState);
-                alert('No se pudo actualizar tu lista en este momento.');
+                notify('error', 'No se pudo actualizar tus favoritos en este momento.', 2600);
             } finally {
                 favoriteBtn.disabled = false;
             }

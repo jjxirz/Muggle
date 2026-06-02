@@ -13,6 +13,7 @@ if (!isset($activePage)) $activePage = '';
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/admin.css')); ?>">
+    <link rel="stylesheet" href="<?= htmlspecialchars(app_url('assets/css/notifications.css')); ?>">
 </head>
 <body>
 
@@ -54,15 +55,20 @@ if (!isset($activePage)) $activePage = '';
                 <i class="fas fa-chart-bar"></i>
                 <span>Reportes</span>
             </a>
-           <!--<a href="../admin/admin_books.php"
-               class="sidebar-item <?= $activePage === 'admin_books' ? 'active' : '' ?>">
-                <i class="fas fa-book"></i>
-                <span>Administrar Libros</span>
+            <a href="../admin/interacciones.php"
+               class="sidebar-item <?= $activePage === 'interacciones' ? 'active' : '' ?>">
+                <i class="fas fa-star"></i>
+                <span>Interacciones</span>
             </a>
             <a href="../admin/logs.php"
                class="sidebar-item <?= $activePage === 'logs' ? 'active' : '' ?>">
                 <i class="fas fa-terminal"></i>
-                <span></span>
+                <span>Logs</span>
+            </a>
+           <!--<a href="../admin/admin_books.php"
+               class="sidebar-item <?= $activePage === 'admin_books' ? 'active' : '' ?>">
+                <i class="fas fa-book"></i>
+                <span>Administrar Libros</span>
             </a>-->
         </div>
 
@@ -87,3 +93,4 @@ if (!isset($activePage)) $activePage = '';
 
     <!-- El contenido de cada vista se inyecta aquí -->
     <div class="admin-main" id="adminMain">
+       <div class="app-notify-stack" data-notify-theme="admin" aria-live="polite" aria-atomic="true"></div>

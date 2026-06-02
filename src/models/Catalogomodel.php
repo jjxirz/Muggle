@@ -5,6 +5,8 @@ require_once __DIR__ . '/Database.php';
 class CatalogoModel
 {
     private PDO $db;
+    private ?bool $bookPlanColumnExists = null;
+    private ?bool $bookPublicationColumnsExist = null;
 
     public function __construct()
     {
@@ -19,10 +21,18 @@ class CatalogoModel
      * Devuelve todos los libros con join de categoría.
      * Acepta filtros opcionales: búsqueda por texto, categoría y tipo.
      */
-    public function getAllBooks(string $search = '', int $categoriaId = 0, string $tipo = ''): array
+    public function getAllBooks(
+        string $search = '',
+        int $categoriaId = 0,
+        string $tipo = '',
+        int $planId = 0,
+        string $publicationStatus = ''
+    ): array
     {
         $conditions = ['1=1'];
         $params = [];
+        $hasPlanColumn = $this->hasBookPlanColumn();
+        $hasPublicationColumns = $this->hasBookPublicationColumns();
 
         if ($search !== '') {
             $conditions[] = '(l.titulo LIKE :search OR l.autor LIKE :search)';
@@ -39,12 +49,36 @@ class CatalogoModel
             $params['tipo'] = $tipo;
         }
 
+        if ($hasPlanColumn && $planId > 0) {
+            $conditions[] = 'l.id_plan_minimo = :id_plan_minimo';
+            $params['id_plan_minimo'] = $planId;
+        }
+
+        if ($hasPublicationColumns && $publicationStatus !== '') {
+            $allowedStatus = ['borrador', 'publicado', 'oculto'];
+            if (in_array($publicationStatus, $allowedStatus, true)) {
+                $conditions[] = 'l.estado_publicacion = :estado_publicacion';
+                $params['estado_publicacion'] = $publicationStatus;
+            }
+        }
+
         $where = implode(' AND ', $conditions);
 
+        $planJoin = $hasPlanColumn
+            ? 'LEFT JOIN planes p ON p.id_plan = l.id_plan_minimo'
+            : '';
+        $planSelect = $hasPlanColumn
+            ? 'l.id_plan_minimo, p.nombre AS plan_nombre'
+            : 'NULL AS id_plan_minimo, NULL AS plan_nombre';
+        $publicationSelect = $hasPublicationColumns
+            ? 'l.estado_publicacion, l.fecha_publicacion_programada'
+            : 'NULL AS estado_publicacion, NULL AS fecha_publicacion_programada';
+
         $stmt = $this->db->prepare(
-            "SELECT l.*, c.nombre AS categoria_nombre
+            "SELECT l.*, c.nombre AS categoria_nombre, {$planSelect}, {$publicationSelect}
              FROM libros l
              INNER JOIN categorias c ON c.id_categoria = l.id_categoria
+             {$planJoin}
              WHERE {$where}
              ORDER BY l.id_libro DESC"
         );
@@ -58,12 +92,25 @@ class CatalogoModel
      */
     public function findBook(int $id): ?array
     {
+        $hasPlanColumn = $this->hasBookPlanColumn();
+        $hasPublicationColumns = $this->hasBookPublicationColumns();
+        $planJoin = $hasPlanColumn
+            ? 'LEFT JOIN planes p ON p.id_plan = l.id_plan_minimo'
+            : '';
+        $planSelect = $hasPlanColumn
+            ? 'l.id_plan_minimo, p.nombre AS plan_nombre'
+            : 'NULL AS id_plan_minimo, NULL AS plan_nombre';
+        $publicationSelect = $hasPublicationColumns
+            ? 'l.estado_publicacion, l.fecha_publicacion_programada'
+            : 'NULL AS estado_publicacion, NULL AS fecha_publicacion_programada';
+
         $stmt = $this->db->prepare(
-            'SELECT l.*, c.nombre AS categoria_nombre
+            "SELECT l.*, c.nombre AS categoria_nombre, {$planSelect}, {$publicationSelect}
              FROM libros l
              INNER JOIN categorias c ON c.id_categoria = l.id_categoria
+             {$planJoin}
              WHERE l.id_libro = :id
-             LIMIT 1'
+             LIMIT 1"
         );
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
@@ -80,6 +127,17 @@ class CatalogoModel
         // Si se sube un nuevo archivo PDF lo procesamos
         $archivo = $this->handlePdfUpload() ?? $this->nullableString($data['archivo'] ?? null);
         $portada  = $this->handleImageUpload('portada_file', 'portadas') ?? $this->nullableString($data['portada'] ?? null);
+        $hasPlanColumn = $this->hasBookPlanColumn();
+        $hasPublicationColumns = $this->hasBookPublicationColumns();
+        $planId = (int) ($data['id_plan_minimo'] ?? 0);
+        if ($planId <= 0) {
+            $planId = null;
+        }
+        $publicationStatus = trim((string) ($data['estado_publicacion'] ?? 'publicado'));
+        if (!in_array($publicationStatus, ['borrador', 'publicado', 'oculto'], true)) {
+            $publicationStatus = 'publicado';
+        }
+        $publicationSchedule = $this->normalizeDateTimeOrNull($data['fecha_publicacion_programada'] ?? null);
 
         $tipo = $data['tipo'] ?? 'digital';
         $allowedTipos = ['fisico', 'digital', 'audiolibro', 'pdf', 'epub'];
@@ -89,8 +147,7 @@ class CatalogoModel
 
         $fecha = trim((string) ($data['fecha_publicado'] ?? ''));
 
-        $stmt = $this->db->prepare(
-            'UPDATE libros SET
+        $sql = 'UPDATE libros SET
                 titulo          = :titulo,
                 autor           = :autor,
                 descripcion     = :descripcion,
@@ -100,11 +157,21 @@ class CatalogoModel
                 doi             = :doi,
                 fecha_publicado = :fecha_publicado,
                 portada         = :portada,
-                archivo         = :archivo
-             WHERE id_libro = :id'
-        );
+                archivo         = :archivo';
 
-        return $stmt->execute([
+        if ($hasPlanColumn) {
+            $sql .= ', id_plan_minimo = :id_plan_minimo';
+        }
+
+        if ($hasPublicationColumns) {
+            $sql .= ', estado_publicacion = :estado_publicacion, fecha_publicacion_programada = :fecha_publicacion_programada';
+        }
+
+        $sql .= ' WHERE id_libro = :id';
+
+        $stmt = $this->db->prepare($sql);
+
+        $params = [
             'titulo'          => trim((string) ($data['titulo'] ?? '')),
             'autor'           => trim((string) ($data['autor'] ?? '')),
             'descripcion'     => $this->nullableString($data['descripcion'] ?? null),
@@ -116,7 +183,92 @@ class CatalogoModel
             'portada'         => $portada,
             'archivo'         => $archivo,
             'id'              => $id,
-        ]);
+        ];
+
+        if ($hasPlanColumn) {
+            $params['id_plan_minimo'] = $planId;
+        }
+
+        if ($hasPublicationColumns) {
+            $params['estado_publicacion'] = $publicationStatus;
+            $params['fecha_publicacion_programada'] = $publicationSchedule;
+        }
+
+        return $stmt->execute($params);
+    }
+
+    public function createBook(array $data): int
+    {
+        $archivo = $this->handlePdfUpload() ?? $this->nullableString($data['archivo'] ?? null);
+        $portada = $this->handleImageUpload('portada_file', 'portadas') ?? $this->nullableString($data['portada'] ?? null);
+        $hasPlanColumn = $this->hasBookPlanColumn();
+        $hasPublicationColumns = $this->hasBookPublicationColumns();
+
+        $tipo = $data['tipo'] ?? 'digital';
+        $allowedTipos = ['fisico', 'digital', 'audiolibro', 'pdf', 'epub'];
+        if (!in_array($tipo, $allowedTipos, true)) {
+            $tipo = 'digital';
+        }
+
+        $fecha = trim((string) ($data['fecha_publicado'] ?? ''));
+        $planId = (int) ($data['id_plan_minimo'] ?? 0);
+        if ($planId <= 0) {
+            $planId = null;
+        }
+        $publicationStatus = trim((string) ($data['estado_publicacion'] ?? 'publicado'));
+        if (!in_array($publicationStatus, ['borrador', 'publicado', 'oculto'], true)) {
+            $publicationStatus = 'publicado';
+        }
+        $publicationSchedule = $this->normalizeDateTimeOrNull($data['fecha_publicacion_programada'] ?? null);
+
+        $columns = [
+            'titulo', 'autor', 'descripcion', 'id_categoria', 'tipo',
+            'isbn', 'doi', 'fecha_publicado', 'portada', 'archivo'
+        ];
+        $placeholders = [
+            ':titulo', ':autor', ':descripcion', ':id_categoria', ':tipo',
+            ':isbn', ':doi', ':fecha_publicado', ':portada', ':archivo'
+        ];
+
+        $params = [
+            'titulo' => trim((string) ($data['titulo'] ?? '')),
+            'autor' => trim((string) ($data['autor'] ?? '')),
+            'descripcion' => $this->nullableString($data['descripcion'] ?? null),
+            'id_categoria' => (int) ($data['id_categoria'] ?? 1),
+            'tipo' => $tipo,
+            'isbn' => $this->nullableString($data['isbn'] ?? null),
+            'doi' => $this->nullableString($data['doi'] ?? null),
+            'fecha_publicado' => $fecha === '' ? null : $fecha,
+            'portada' => $portada,
+            'archivo' => $archivo,
+        ];
+
+        if ($hasPlanColumn) {
+            $columns[] = 'id_plan_minimo';
+            $placeholders[] = ':id_plan_minimo';
+            $params['id_plan_minimo'] = $planId;
+        }
+
+        if ($hasPublicationColumns) {
+            $columns[] = 'estado_publicacion';
+            $placeholders[] = ':estado_publicacion';
+            $params['estado_publicacion'] = $publicationStatus;
+
+            $columns[] = 'fecha_publicacion_programada';
+            $placeholders[] = ':fecha_publicacion_programada';
+            $params['fecha_publicacion_programada'] = $publicationSchedule;
+        }
+
+        $sql = sprintf(
+            'INSERT INTO libros (%s) VALUES (%s)',
+            implode(', ', $columns),
+            implode(', ', $placeholders)
+        );
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $this->db->lastInsertId();
     }
 
     /**
@@ -241,6 +393,40 @@ class CatalogoModel
         return $stmt->fetchAll();
     }
 
+    public function getPlanOptions(): array
+    {
+        $stmt = $this->db->query(
+            'SELECT id_plan, nombre FROM planes ORDER BY precio ASC, nombre ASC'
+        );
+
+        return $stmt->fetchAll();
+    }
+
+    public function hasBookPlanColumn(): bool
+    {
+        if ($this->bookPlanColumnExists !== null) {
+            return $this->bookPlanColumnExists;
+        }
+
+        $stmt = $this->db->query("SHOW COLUMNS FROM libros LIKE 'id_plan_minimo'");
+        $this->bookPlanColumnExists = (bool) $stmt->fetchColumn();
+
+        return $this->bookPlanColumnExists;
+    }
+
+    public function hasBookPublicationColumns(): bool
+    {
+        if ($this->bookPublicationColumnsExist !== null) {
+            return $this->bookPublicationColumnsExist;
+        }
+
+        $statusStmt = $this->db->query("SHOW COLUMNS FROM libros LIKE 'estado_publicacion'");
+        $scheduleStmt = $this->db->query("SHOW COLUMNS FROM libros LIKE 'fecha_publicacion_programada'");
+        $this->bookPublicationColumnsExist = (bool) $statusStmt->fetchColumn() && (bool) $scheduleStmt->fetchColumn();
+
+        return $this->bookPublicationColumnsExist;
+    }
+
     // ─────────────────────────────────────────────
     //  HELPERS PRIVADOS
     // ─────────────────────────────────────────────
@@ -249,6 +435,26 @@ class CatalogoModel
     {
         $v = trim((string) $value);
         return $v === '' ? null : $v;
+    }
+
+    private function normalizeDateTimeOrNull($value): ?string
+    {
+        $raw = trim((string) $value);
+        if ($raw === '') {
+            return null;
+        }
+
+        // Accept datetime-local format and normalize to MySQL DATETIME.
+        $normalized = str_replace('T', ' ', $raw);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}$/', $normalized) === 1) {
+            $normalized .= ':00';
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/', $normalized) !== 1) {
+            return null;
+        }
+
+        return $normalized;
     }
 
     /**

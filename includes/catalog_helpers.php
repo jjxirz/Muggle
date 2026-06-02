@@ -7,6 +7,38 @@ if (!function_exists('catalog_e')) {
     }
 }
 
+/**
+ * Load the full published catalog from the database.
+ * Returns an array of book arrays ready for renderBookCard().
+ * Falls back to an empty array if the DB is not available or the table is empty.
+ */
+if (!function_exists('catalog_books_from_db')) {
+    function catalog_books_from_db(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+
+        try {
+            require_once __DIR__ . '/../src/models/BookModel.php';
+            $model = new BookModel();
+            $rows  = $model->getCatalogBooks();
+        } catch (Throwable $e) {
+            $cache = [];
+            return $cache;
+        }
+
+        $books = [];
+        foreach ($rows as $index => $row) {
+            $books[] = catalog_prepare_db_book($row, $index);
+        }
+
+        $cache = $books;
+        return $cache;
+    }
+}
+
 if (!function_exists('cleanPdfTitle')) {
     function cleanPdfTitle(string $filename): string
     {
@@ -319,6 +351,176 @@ if (!function_exists('catalog_prepare_db_book')) {
     }
 }
 
+if (!function_exists('catalog_preview_data_attrs')) {
+    function catalog_preview_data_attrs(array $book): string
+    {
+        $attributes = [
+            'data-title' => (string) ($book['title'] ?? 'Obra sin identificar'),
+            'data-author' => (string) ($book['author'] ?? 'Autor no especificado'),
+            'data-description' => (string) ($book['description'] ?? 'Obra disponible en el catálogo digital de la biblioteca.'),
+            'data-category' => (string) ($book['category'] ?? 'Lectura digital'),
+            'data-year' => (string) ($book['year'] ?? 'Disponible'),
+            'data-pages' => (string) ($book['pages'] ?? 'Archivo disponible'),
+            'data-pdf' => (string) ($book['pdf'] ?? ''),
+            'data-reader' => (string) ($book['reader'] ?? ''),
+            'data-file' => (string) ($book['file'] ?? ''),
+            'data-type' => (string) ($book['type'] ?? 'pdf'),
+            'data-cover' => (string) ($book['cover'] ?? ''),
+            'data-banner' => (string) ($book['banner'] ?? ''),
+            'data-tags' => (string) ($book['tags'] ?? ''),
+        ];
+
+        $html = '';
+        foreach ($attributes as $name => $value) {
+            $html .= ' ' . $name . '="' . catalog_e($value) . '"';
+        }
+
+        return $html;
+    }
+}
+
+if (!function_exists('catalog_unique_books')) {
+    function catalog_unique_books(array $books): array
+    {
+        $seen = [];
+        $unique = [];
+
+        foreach ($books as $book) {
+            $key = mb_strtolower(
+                trim((string) ($book['file'] ?? '')) . '|' . trim((string) ($book['title'] ?? '')) . '|' . trim((string) ($book['author'] ?? '')),
+                'UTF-8'
+            );
+
+            if ($key === '' || isset($seen[$key])) {
+                continue;
+            }
+
+            $seen[$key] = true;
+            $unique[] = $book;
+        }
+
+        return $unique;
+    }
+}
+
+if (!function_exists('catalog_pick_discovery_books')) {
+    function catalog_pick_discovery_books(array $books, array $preferredCategories = [], array $excludeTitles = [], int $supportLimit = 3): array
+    {
+        $books = catalog_unique_books($books);
+        $preferredCategories = array_map(static fn ($value) => mb_strtolower(trim((string) $value), 'UTF-8'), $preferredCategories);
+        $excludeTitles = array_map(static fn ($value) => mb_strtolower(trim((string) $value), 'UTF-8'), $excludeTitles);
+
+        $featured = null;
+
+        foreach ($books as $book) {
+            $title = mb_strtolower(trim((string) ($book['title'] ?? '')), 'UTF-8');
+            $category = mb_strtolower(trim((string) ($book['category'] ?? '')), 'UTF-8');
+
+            if (in_array($title, $excludeTitles, true)) {
+                continue;
+            }
+
+            if (!empty($preferredCategories) && in_array($category, $preferredCategories, true)) {
+                $featured = $book;
+                break;
+            }
+        }
+
+        if ($featured === null) {
+            foreach ($books as $book) {
+                $title = mb_strtolower(trim((string) ($book['title'] ?? '')), 'UTF-8');
+                if (!in_array($title, $excludeTitles, true)) {
+                    $featured = $book;
+                    break;
+                }
+            }
+        }
+
+        if ($featured === null) {
+            return ['featured' => null, 'support' => []];
+        }
+
+        $support = [];
+        $featuredTitle = mb_strtolower(trim((string) ($featured['title'] ?? '')), 'UTF-8');
+        $featuredCategory = mb_strtolower(trim((string) ($featured['category'] ?? '')), 'UTF-8');
+
+        foreach ($books as $book) {
+            $title = mb_strtolower(trim((string) ($book['title'] ?? '')), 'UTF-8');
+            $category = mb_strtolower(trim((string) ($book['category'] ?? '')), 'UTF-8');
+
+            if ($title === $featuredTitle || in_array($title, $excludeTitles, true)) {
+                continue;
+            }
+
+            if ($category === $featuredCategory || empty($support)) {
+                $support[] = $book;
+            }
+
+            if (count($support) >= $supportLimit) {
+                break;
+            }
+        }
+
+        return ['featured' => $featured, 'support' => $support];
+    }
+}
+
+if (!function_exists('renderDiscoveryBand')) {
+    function renderDiscoveryBand(?array $featuredBook, array $supportBooks = [], array $options = []): void
+    {
+        if ($featuredBook === null) {
+            return;
+        }
+
+        $eyebrow = (string) ($options['eyebrow'] ?? 'Recomendación para ti');
+        $title = (string) ($options['title'] ?? 'Una lectura que encaja con tu ritmo');
+        $description = (string) ($options['description'] ?? 'Una selección breve para descubrir algo nuevo sin romper el flujo de la página.');
+        $readLabel = (string) ($options['read_label'] ?? 'Abrir lectura');
+        $previewLabel = (string) ($options['preview_label'] ?? 'Vista previa');
+        ?>
+        <section class="discovery-band">
+            <div class="discovery-band__inner">
+                <div class="discovery-band__copy">
+                    <span class="discovery-band__eyebrow"><?php echo catalog_e($eyebrow); ?></span>
+                    <h3 class="discovery-band__title"><?php echo catalog_e($title); ?></h3>
+                    <p class="discovery-band__description"><?php echo catalog_e($description); ?></p>
+                    <div class="discovery-band__featured-meta">
+                        <strong><?php echo catalog_e((string) ($featuredBook['title'] ?? 'Obra destacada')); ?></strong>
+                        <span><?php echo catalog_e((string) ($featuredBook['author'] ?? 'Autor no especificado')); ?> · <?php echo catalog_e((string) ($featuredBook['category'] ?? 'Lectura digital')); ?></span>
+                    </div>
+                    <div class="discovery-band__actions">
+                        <a href="#" class="btn btn-primary js-book-preview"<?php echo catalog_preview_data_attrs($featuredBook); ?>><?php echo catalog_e($previewLabel); ?></a>
+                        <?php if (!empty($featuredBook['reader']) || !empty($featuredBook['pdf'])): ?>
+                            <a href="<?php echo catalog_e((string) ($featuredBook['reader'] ?? $featuredBook['pdf'] ?? '#')); ?>" class="btn btn-secondary"><?php echo catalog_e($readLabel); ?></a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <?php if (!empty($supportBooks)): ?>
+                    <div class="discovery-band__shelf" aria-label="Lecturas relacionadas">
+                        <?php foreach ($supportBooks as $supportBook): ?>
+                            <article class="discovery-band__mini-card js-book-preview" role="button" tabindex="0"<?php echo catalog_preview_data_attrs($supportBook); ?>>
+                                <div class="discovery-band__mini-cover">
+                                    <?php if (!empty($supportBook['cover'])): ?>
+                                        <img src="<?php echo catalog_e((string) $supportBook['cover']); ?>" alt="<?php echo catalog_e((string) ($supportBook['title'] ?? 'Libro')); ?>">
+                                    <?php else: ?>
+                                        <span><?php echo catalog_e(mb_substr((string) ($supportBook['title'] ?? 'L'), 0, 1, 'UTF-8')); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="discovery-band__mini-copy">
+                                    <strong><?php echo catalog_e((string) ($supportBook['title'] ?? 'Libro')); ?></strong>
+                                    <span><?php echo catalog_e((string) ($supportBook['category'] ?? 'Lectura digital')); ?></span>
+                                </div>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
+        <?php
+    }
+}
+
 if (!function_exists('renderBookCard')) {
     function renderBookCard(array $book): void
     {
@@ -356,6 +558,12 @@ if (!function_exists('renderBookCard')) {
              data-tags="<?php echo catalog_e($tags); ?>">
             <div class="book-cover">
                 <span class="book-plan-badge book-plan-badge--<?php echo catalog_e($planClass); ?>"><?php echo catalog_e($plan); ?></span>
+                <span class="book-progress-indicator" aria-label="Lectura en progreso" title="Lectura en progreso">
+                    <i class="fas fa-book-open" aria-hidden="true"></i>
+                </span>
+                <span class="book-favorite-indicator" aria-label="Favorito" title="Favorito">
+                    <i class="fas fa-star" aria-hidden="true"></i>
+                </span>
 
                 <?php if ($cover !== ''): ?>
                     <img src="<?php echo catalog_e($cover); ?>" alt="<?php echo catalog_e($title); ?>" class="cover-img">
@@ -378,6 +586,99 @@ if (!function_exists('renderBookCard')) {
                 <p><?php echo catalog_e($author); ?></p>
             </div>
         </div>
+        <?php
+    }
+}
+
+if (!function_exists('catalog_build_discovery_band')) {
+    function catalog_build_discovery_band(array $books, array $options = []): ?array
+    {
+        $books = array_values(array_filter($books, static function ($book) {
+            return is_array($book) && !empty($book['title']);
+        }));
+
+        if (empty($books)) {
+            return null;
+        }
+
+        $featured = $books[0];
+        $companions = array_slice($books, 1, 3);
+
+        return [
+            'eyebrow' => (string) ($options['eyebrow'] ?? 'Sugerencia para seguir leyendo'),
+            'title' => (string) ($options['title'] ?? ($featured['title'] ?? 'Lectura recomendada')),
+            'description' => (string) ($options['description'] ?? ($featured['description'] ?? '')),
+            'meta' => (string) ($options['meta'] ?? (($featured['author'] ?? 'Autor no especificado') . ' · ' . ($featured['category'] ?? 'Lectura digital'))),
+            'cta_label' => (string) ($options['cta_label'] ?? 'Ver recomendación'),
+            'featured' => $featured,
+            'companions' => $companions,
+        ];
+    }
+}
+
+if (!function_exists('catalog_render_discovery_band')) {
+    function catalog_render_discovery_band(?array $band): void
+    {
+        if ($band === null) {
+            return;
+        }
+
+        $featured = $band['featured'] ?? [];
+        $companions = $band['companions'] ?? [];
+        ?>
+        <section class="discovery-band">
+            <div class="discovery-band__copy">
+                <span class="discovery-band__eyebrow"><?php echo catalog_e($band['eyebrow'] ?? 'Recomendación'); ?></span>
+                <h3 class="discovery-band__title"><?php echo catalog_e($band['title'] ?? 'Lectura sugerida'); ?></h3>
+                <p class="discovery-band__meta"><?php echo catalog_e($band['meta'] ?? 'Biblioteca digital'); ?></p>
+                <p class="discovery-band__description"><?php echo catalog_e($band['description'] ?? ''); ?></p>
+                <a href="#"
+                   class="btn btn-secondary js-book-preview"
+                   data-title="<?php echo catalog_e($featured['title'] ?? ''); ?>"
+                   data-author="<?php echo catalog_e($featured['author'] ?? ''); ?>"
+                   data-description="<?php echo catalog_e($featured['description'] ?? ''); ?>"
+                   data-category="<?php echo catalog_e($featured['category'] ?? ''); ?>"
+                   data-year="<?php echo catalog_e($featured['year'] ?? ''); ?>"
+                   data-pages="<?php echo catalog_e($featured['pages'] ?? ''); ?>"
+                   data-pdf="<?php echo catalog_e($featured['pdf'] ?? ''); ?>"
+                   data-reader="<?php echo catalog_e($featured['reader'] ?? ''); ?>"
+                   data-file="<?php echo catalog_e($featured['file'] ?? ''); ?>"
+                   data-type="<?php echo catalog_e($featured['type'] ?? 'pdf'); ?>"
+                   data-cover="<?php echo catalog_e($featured['cover'] ?? ''); ?>"
+                   data-banner="<?php echo catalog_e($featured['banner'] ?? ''); ?>"
+                   data-tags="<?php echo catalog_e($featured['tags'] ?? ''); ?>">
+                    <i class="fas fa-sparkles" aria-hidden="true"></i>
+                    <?php echo catalog_e($band['cta_label'] ?? 'Ver recomendación'); ?>
+                </a>
+            </div>
+
+            <div class="discovery-band__stack">
+                <?php foreach ($companions as $companion): ?>
+                    <button type="button"
+                            class="discovery-band__mini js-book-preview"
+                            aria-label="Vista previa de <?php echo catalog_e($companion['title'] ?? 'Libro'); ?>"
+                            data-title="<?php echo catalog_e($companion['title'] ?? ''); ?>"
+                            data-author="<?php echo catalog_e($companion['author'] ?? ''); ?>"
+                            data-description="<?php echo catalog_e($companion['description'] ?? ''); ?>"
+                            data-category="<?php echo catalog_e($companion['category'] ?? ''); ?>"
+                            data-year="<?php echo catalog_e($companion['year'] ?? ''); ?>"
+                            data-pages="<?php echo catalog_e($companion['pages'] ?? ''); ?>"
+                            data-pdf="<?php echo catalog_e($companion['pdf'] ?? ''); ?>"
+                            data-reader="<?php echo catalog_e($companion['reader'] ?? ''); ?>"
+                            data-file="<?php echo catalog_e($companion['file'] ?? ''); ?>"
+                            data-type="<?php echo catalog_e($companion['type'] ?? 'pdf'); ?>"
+                            data-cover="<?php echo catalog_e($companion['cover'] ?? ''); ?>"
+                            data-banner="<?php echo catalog_e($companion['banner'] ?? ''); ?>"
+                            data-tags="<?php echo catalog_e($companion['tags'] ?? ''); ?>">
+                        <?php if (!empty($companion['cover'])): ?>
+                            <img src="<?php echo catalog_e($companion['cover']); ?>" alt="<?php echo catalog_e($companion['title'] ?? 'Libro'); ?>">
+                        <?php else: ?>
+                            <span><?php echo catalog_e(mb_substr((string) ($companion['title'] ?? 'L'), 0, 1, 'UTF-8')); ?></span>
+                        <?php endif; ?>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </section>
         <?php
     }
 }

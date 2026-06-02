@@ -8,10 +8,17 @@ $page_title = 'Categorías';
 $active_page = 'categorias';
 
 $baseUrl = app_base_url();
-$assetUrl = $baseUrl . '/assets';
-$bookImagesPath = __DIR__ . '/assets/img-books';
-$bookImagesUrl = $assetUrl . '/img-books';
-$books = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
+$books = catalog_books_from_db();
+
+$discoveryBand = catalog_build_discovery_band(
+    array_slice($books, 0, 4),
+    [
+        'eyebrow' => 'Cruza entre temas',
+        'title' => 'Una sugerencia para salir de tu categoría habitual',
+        'description' => 'Inspirado en patrones de discovery más suaves: una recomendación principal y una pequeña pila de rutas relacionadas.',
+        'cta_label' => 'Abrir sugerencia',
+    ]
+);
 
 $groupedBooks = [];
 foreach ($books as $book) {
@@ -31,6 +38,8 @@ require_once __DIR__ . '/includes/header.php';
         <h2>Categorías</h2>
         <p>Explora el catálogo por temática y abre la vista previa desde cada tarjeta.</p>
     </div>
+
+    <?php catalog_render_discovery_band($discoveryBand); ?>
 
     <?php if (empty($groupedBooks)): ?>
         <article class="category-card">No hay libros cargados todavía.</article>

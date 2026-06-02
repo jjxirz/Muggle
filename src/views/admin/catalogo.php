@@ -24,9 +24,14 @@ $catList      = $data['catList'];      // para la tabla
 $libroEditar  = $data['libroEditar'];
 $catEditar    = $data['catEditar'];
 $flash        = $data['flash'];
+$planes       = $data['planes'];
 $filterSearch = $data['filterSearch'];
 $filterCatId  = $data['filterCatId'];
 $filterTipo   = $data['filterTipo'];
+$filterPlanId = $data['filterPlanId'];
+$filterPublicationStatus = $data['filterPublicationStatus'];
+$supportsBookPlanFilter = (bool) ($data['supportsBookPlanFilter'] ?? false);
+$supportsBookPublicationFilter = (bool) ($data['supportsBookPublicationFilter'] ?? false);
 
 $activePage   = 'catalogo';
 include __DIR__ . '/../layouts/sidebar.php';
@@ -49,7 +54,7 @@ include __DIR__ . '/../layouts/sidebar.php';
 
 <!-- ===== FLASH ===== -->
 <?php if ($flash): ?>
-<div class="flash-msg flash-msg--<?= htmlspecialchars($flash['type']) ?>">
+<div class="app-flash app-flash--<?= htmlspecialchars($flash['type']) ?>">
     <?= htmlspecialchars($flash['message']) ?>
 </div>
 <?php endif; ?>
@@ -70,6 +75,18 @@ include __DIR__ . '/../layouts/sidebar.php';
     <!-- ═══TAB: LISTADO═════ -->
     <?php if ($tab === 'listado'): ?>
     <div class="admin-card">
+
+        <?php if (!$supportsBookPlanFilter): ?>
+            <div class="app-flash app-flash--error" style="margin:0 0 12px 0;">
+                Falta la columna <strong>id_plan_minimo</strong> en <strong>libros</strong>. Ejecuta el script actualizado para habilitar filtro y asignación por plan.
+            </div>
+        <?php endif; ?>
+
+        <?php if (!$supportsBookPublicationFilter): ?>
+            <div class="app-flash app-flash--error" style="margin:0 0 12px 0;">
+                Faltan columnas editoriales en <strong>libros</strong> (<strong>estado_publicacion</strong>, <strong>fecha_publicacion_programada</strong>). Ejecuta el script actualizado para habilitar flujo editorial.
+            </div>
+        <?php endif; ?>
 
         <!-- Barra de filtros -->
         <form method="GET" action="" id="formFiltros">
@@ -100,6 +117,24 @@ include __DIR__ . '/../layouts/sidebar.php';
                         <option value="<?= $v ?>" <?= $filterTipo === $v ? 'selected' : '' ?>><?= $l ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <?php if ($supportsBookPlanFilter): ?>
+                    <select class="filter-select" name="plan" onchange="this.form.submit()">
+                        <option value="">Todos los planes</option>
+                        <?php foreach ($planes as $plan): ?>
+                        <option value="<?= (int)$plan['id_plan'] ?>" <?= $filterPlanId === (int)$plan['id_plan'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($plan['nombre']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php endif; ?>
+                    <?php if ($supportsBookPublicationFilter): ?>
+                    <select class="filter-select" name="estado_publicacion" onchange="this.form.submit()">
+                        <option value="">Todos los estados</option>
+                        <option value="borrador" <?= $filterPublicationStatus === 'borrador' ? 'selected' : '' ?>>Borrador</option>
+                        <option value="publicado" <?= $filterPublicationStatus === 'publicado' ? 'selected' : '' ?>>Publicado</option>
+                        <option value="oculto" <?= $filterPublicationStatus === 'oculto' ? 'selected' : '' ?>>Oculto</option>
+                    </select>
+                    <?php endif; ?>
                 </div>
             </div>
         </form>
@@ -111,6 +146,8 @@ include __DIR__ . '/../layouts/sidebar.php';
                         <th>Libro</th>
                         <th>Autor</th>
                         <th>Categoría</th>
+                        <?php if ($supportsBookPlanFilter): ?><th>Plan mínimo</th><?php endif; ?>
+                        <?php if ($supportsBookPublicationFilter): ?><th>Estado</th><?php endif; ?>
                         <th>Tipo</th>
                         <th>Acciones</th>
                     </tr>
@@ -118,7 +155,7 @@ include __DIR__ . '/../layouts/sidebar.php';
                 <tbody>
                 <?php if (empty($libros)): ?>
                     <tr>
-                        <td colspan="5" style="text-align:center;padding:32px;color:#888;">
+                        <td colspan="<?= ($supportsBookPlanFilter ? 1 : 0) + ($supportsBookPublicationFilter ? 1 : 0) + 5 ?>" style="text-align:center;padding:32px;color:#888;">
                             No se encontraron libros<?= $filterSearch !== '' ? " para «{$filterSearch}»" : '' ?>.
                         </td>
                     </tr>
@@ -144,6 +181,21 @@ include __DIR__ . '/../layouts/sidebar.php';
                         </td>
                         <td class="text-secondary"><?= htmlspecialchars($libro['autor'] ?? '—') ?></td>
                         <td><?= htmlspecialchars($libro['categoria_nombre']) ?></td>
+                        <?php if ($supportsBookPlanFilter): ?>
+                            <td>
+                                <span class="badge-plan badge-plan--free">
+                                    <?= htmlspecialchars((string) ($libro['plan_nombre'] ?? 'Free')) ?>
+                                </span>
+                            </td>
+                        <?php endif; ?>
+                        <?php if ($supportsBookPublicationFilter): ?>
+                            <td>
+                                <?php $estadoPublicacion = (string) ($libro['estado_publicacion'] ?? 'publicado'); ?>
+                                <span class="badge-estado badge-estado--<?= htmlspecialchars($estadoPublicacion === 'oculto' ? 'inactivo' : ($estadoPublicacion === 'borrador' ? 'suspendido' : 'activo')) ?>">
+                                    <?= htmlspecialchars(ucfirst($estadoPublicacion)) ?>
+                                </span>
+                            </td>
+                        <?php endif; ?>
                         <td><span class="badge-tipo"><?= htmlspecialchars($libro['tipo']) ?></span></td>
                         <td>
                             <div class="action-btns">
@@ -320,6 +372,42 @@ include __DIR__ . '/../layouts/sidebar.php';
                             </select>
                         </div>
                     </div>
+                    <?php if ($supportsBookPlanFilter): ?>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Plan mínimo requerido</label>
+                            <select name="id_plan_minimo" class="form-control admin-input">
+                                <option value="">Sin restricción</option>
+                                <?php foreach ($planes as $plan): ?>
+                                <option value="<?= (int)$plan['id_plan'] ?>"
+                                    <?= (int)($libroEditar['id_plan_minimo'] ?? 0) === (int)$plan['id_plan'] ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($plan['nombre']) ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($supportsBookPublicationFilter): ?>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Estado editorial</label>
+                            <select name="estado_publicacion" class="form-control admin-input">
+                                <option value="borrador" <?= (string)($libroEditar['estado_publicacion'] ?? 'publicado') === 'borrador' ? 'selected' : '' ?>>Borrador</option>
+                                <option value="publicado" <?= (string)($libroEditar['estado_publicacion'] ?? 'publicado') === 'publicado' ? 'selected' : '' ?>>Publicado</option>
+                                <option value="oculto" <?= (string)($libroEditar['estado_publicacion'] ?? 'publicado') === 'oculto' ? 'selected' : '' ?>>Oculto</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label">Publicación programada</label>
+                            <?php $programada = (string) ($libroEditar['fecha_publicacion_programada'] ?? ''); ?>
+                            <input type="datetime-local" name="fecha_publicacion_programada" class="form-control admin-input"
+                                   value="<?= htmlspecialchars($programada !== '' ? str_replace(' ', 'T', substr($programada, 0, 16)) : '') ?>">
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label class="form-label">ISBN</label>
@@ -443,11 +531,11 @@ include __DIR__ . '/../layouts/sidebar.php';
 
             <!-- Formulario en grid -->
             <form id="formNuevoLibro"
-                  action="admin_books.php"
+                                    action="catalogo.php"
                   method="POST"
                   enctype="multipart/form-data">
                 <?php echo csrf_input(); ?>
-                <input type="hidden" name="action" value="create">
+                                <input type="hidden" name="action" value="create_book">
 
                 <!-- FILA 1: Título + Autor -->
                 <div class="ml-grid ml-grid--2">
@@ -500,6 +588,29 @@ include __DIR__ . '/../layouts/sidebar.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
+                    <?php if ($supportsBookPlanFilter): ?>
+                    <div class="form-group">
+                        <label class="form-label">Plan mínimo</label>
+                        <select name="id_plan_minimo" class="form-control admin-input">
+                            <option value="">Sin restricción</option>
+                            <?php foreach ($planes as $plan): ?>
+                            <option value="<?= (int)$plan['id_plan'] ?>">
+                                <?= htmlspecialchars($plan['nombre']) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($supportsBookPublicationFilter): ?>
+                    <div class="form-group">
+                        <label class="form-label">Estado editorial</label>
+                        <select name="estado_publicacion" class="form-control admin-input">
+                            <option value="publicado">Publicado</option>
+                            <option value="borrador">Borrador</option>
+                            <option value="oculto">Oculto</option>
+                        </select>
+                    </div>
+                    <?php endif; ?>
                 </div>
 
                 <!-- FILA 3: Descripción + columna derecha -->
@@ -526,6 +637,23 @@ include __DIR__ . '/../layouts/sidebar.php';
                                        class="form-control admin-input">
                             </div>
                         </div>
+                        <?php if ($supportsBookPublicationFilter): ?>
+                        <div class="ml-grid ml-grid--2">
+                            <div class="form-group">
+                                <label class="form-label">Estado editorial</label>
+                                <select name="estado_publicacion" class="form-control admin-input">
+                                    <option value="publicado">Publicado</option>
+                                    <option value="borrador">Borrador</option>
+                                    <option value="oculto">Oculto</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Publicación programada</label>
+                                <input type="datetime-local" name="fecha_publicacion_programada"
+                                       class="form-control admin-input">
+                            </div>
+                        </div>
+                        <?php endif; ?>
                         <!-- FILA 3c: Archivo / PDF -->
                         <div class="form-group">
                             <label class="form-label">URL de lectura / archivo</label>
@@ -605,17 +733,6 @@ include __DIR__ . '/../layouts/sidebar.php';
      ESTILOS EXTRAS
 ══════════════════════════════════════════════════════ -->
 <style>
-/* Flash */
-.flash-msg {
-    margin: 12px 24px 0;
-    padding: 12px 18px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-}
-.flash-msg--success { background: #d1fae5; color: #065f46; border: 1px solid #6ee7b7; }
-.flash-msg--error   { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
 /* Badge tipo */
 .badge-tipo {
     display: inline-block;

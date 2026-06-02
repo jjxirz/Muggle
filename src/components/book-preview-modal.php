@@ -22,11 +22,17 @@
                        id="bookPreviewReadBtn"
                        target="_blank"
                        rel="noopener">
-                        ▶ Leer PDF
+                        Comenzar lectura
                     </a>
 
-                    <button type="button" class="book-preview-icon-btn" id="bookPreviewListBtn">
-                        + Mi lista
+                    <button type="button" class="book-preview-list-btn" id="bookPreviewReadingListBtn" aria-pressed="false">
+                        <i class="far fa-bookmark" aria-hidden="true"></i>
+                        <span>Agregar a lectura</span>
+                    </button>
+
+                    <button type="button" class="book-preview-favorite-btn" id="bookPreviewFavoriteBtn" aria-pressed="false">
+                        <i class="far fa-star" aria-hidden="true"></i>
+                        <span>Favorito</span>
                     </button>
                 </div>
             </div>

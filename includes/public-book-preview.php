@@ -10,9 +10,13 @@
                 <p class="book-preview-author" id="bookPreviewAuthor">Autor</p>
                 <div class="book-preview-actions">
                     <a href="#" class="book-preview-read-btn" id="bookPreviewReadBtn">Comenzar lectura</a>
-                    <button type="button" class="book-preview-list-btn" id="bookPreviewFavoriteBtn" aria-pressed="false">
-                        <i class="far fa-heart" aria-hidden="true"></i>
-                        <span>Mi lista</span>
+                    <button type="button" class="book-preview-list-btn" id="bookPreviewReadingListBtn" aria-pressed="false">
+                        <i class="far fa-bookmark" aria-hidden="true"></i>
+                        <span>Agregar a lectura</span>
+                    </button>
+                    <button type="button" class="book-preview-favorite-btn" id="bookPreviewFavoriteBtn" aria-pressed="false">
+                        <i class="far fa-star" aria-hidden="true"></i>
+                        <span>Favorito</span>
                     </button>
                 </div>
             </div>

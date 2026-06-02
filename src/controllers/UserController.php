@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/UserModel.php';
+require_once __DIR__ . '/../models/SystemLogModel.php';
 require_once __DIR__ . '/../lib/Auth.php';
 
 class UserController
@@ -30,22 +31,38 @@ class UserController
         require_valid_csrf();
 
         $action = $_POST['action'] ?? '';
+        $adminId = (int) ($_SESSION['user_id'] ?? 0);
 
         try {
             if ($action === 'create_usuario') {
                 $this->validateCreate($_POST);
                 $this->model->createUsuario($_POST);
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: usuario creado',
+                    'Email: ' . (string) ($_POST['email'] ?? 'sin-email')
+                );
                 $this->setFlash('Usuario creado correctamente.', 'success');
             }
 
             if ($action === 'toggle_estado' && isset($_POST['id_usuario'])) {
                 $nuevoEstado = ($_POST['estado_actual'] === 'activo') ? 'inactivo' : 'activo';
                 $this->model->updateEstado((int) $_POST['id_usuario'], $nuevoEstado);
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: estado de usuario actualizado',
+                    'Usuario ID: ' . (int) $_POST['id_usuario'] . ' -> ' . $nuevoEstado
+                );
                 $this->setFlash('Estado del usuario actualizado.', 'success');
             }
 
             if ($action === 'delete_usuario' && isset($_POST['id_usuario'])) {
                 $this->model->deleteUsuario((int) $_POST['id_usuario']);
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: usuario eliminado',
+                    'Usuario ID: ' . (int) $_POST['id_usuario']
+                );
                 $this->setFlash('Usuario eliminado.', 'success');
             }
         } catch (Throwable $e) {

@@ -25,7 +25,7 @@ require_once __DIR__ . '/includes/header.php';
         </article>
         <article class="category-card content-card">
             <strong>¿Cómo agrego favoritos?</strong>
-            <p class="content-card-meta">En la vista previa de un libro usa el botón Mi lista para agregar/quitar.</p>
+            <p class="content-card-meta">En la vista previa usa Agregar a lectura y el botón de favoritos con estrella.</p>
         </article>
     </div>
 </section>

@@ -36,7 +36,7 @@ include __DIR__ . '/../layouts/sidebar.php';
 <!-- flash -->
 <?php if ($flash): ?>
 <div style="padding:0 24px">
-    <div class="alert <?= $flash['type'] === 'success' ? 'alert-success' : 'alert-danger' ?>"
+    <div class="app-flash <?= $flash['type'] === 'success' ? 'app-flash--success' : 'app-flash--error' ?>"
          style="font-size:13px; border-radius:8px; padding:10px 14px; margin-bottom:0">
         <?= htmlspecialchars($flash['message']) ?>
     </div>

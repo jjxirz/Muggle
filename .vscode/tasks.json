@@ -1,0 +1,71 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "diagnostico-login-muggle",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"$hash='$2y$10$ljQw6x6L1aT2Q6x11bI6qOGuYf75ad8n2Rgmf9fUTAjkQXv0lArHG'; echo 'HASH_OK=' . (password_verify('Admin123!', $hash) ? '1' : '0') . PHP_EOL; require 'src/models/Database.php'; try { Database::getConnection(); echo 'DB_OK=1' . PHP_EOL; } catch (Throwable $e) { echo 'DB_OK=0' . PHP_EOL; echo 'DB_ERR=' . $e->getMessage() . PHP_EOL; }"
+			]
+		},
+		{
+			"label": "diagnostico-login-muggle-2",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"\\$hash='\\$2y\\$10\\$ljQw6x6L1aT2Q6x11bI6qOGuYf75ad8n2Rgmf9fUTAjkQXv0lArHG'; echo 'HASH_OK=' . (password_verify('Admin123!', \\$hash) ? '1' : '0') . PHP_EOL; require 'src/models/Database.php'; try { Database::getConnection(); echo 'DB_OK=1' . PHP_EOL; } catch (Throwable \\$e) { echo 'DB_OK=0' . PHP_EOL; echo 'DB_ERR=' . \\$e->getMessage() . PHP_EOL; }"
+			]
+		},
+		{
+			"label": "diag-login-script",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_login_diag.php"
+			]
+		},
+		{
+			"label": "diag-login-db-users",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_login_diag_db.php"
+			]
+		},
+		{
+			"label": "diag-login-db-users-2",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_login_diag_db.php"
+			]
+		},
+		{
+			"label": "make-admin-hash",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_make_hash.php"
+			]
+		},
+		{
+			"label": "fix-admin-password-db",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_fix_admin_password.php"
+			]
+		},
+		{
+			"label": "diag-admin-logs-model",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_logs_diag.php"
+			]
+		}
+	]
+}

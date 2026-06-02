@@ -604,6 +604,139 @@ i {
     background: #1a1a1a;
 }
 
+.discovery-band {
+    margin: 0 0 1.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(24, 24, 24, 0.96), rgba(14, 14, 14, 0.92));
+    overflow: hidden;
+}
+
+.discovery-band__inner,
+.discovery-band {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(220px, 0.9fr);
+    gap: 1rem;
+    align-items: center;
+}
+
+.discovery-band__copy {
+    padding: 1.15rem 1.25rem;
+}
+
+.discovery-band__eyebrow {
+    display: inline-flex;
+    margin-bottom: 0.7rem;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.06);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.discovery-band__title {
+    margin: 0 0 0.35rem;
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    line-height: 1.08;
+}
+
+.discovery-band__meta {
+    margin: 0 0 0.55rem;
+    color: rgba(255, 255, 255, 0.82);
+    font-size: 0.88rem;
+}
+
+.discovery-band__description {
+    margin: 0;
+    max-width: 58ch;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.92rem;
+}
+
+.discovery-band__actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.discovery-band__shelf,
+.discovery-band__stack {
+    padding: 1rem 1rem 1rem 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.discovery-band__mini,
+.discovery-band__mini-card {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+}
+
+.discovery-band__mini-cover,
+.discovery-band__mini img,
+.discovery-band__mini-card img {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+    background: #232323;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.discovery-band__mini-cover {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.discovery-band__mini-copy {
+    padding-top: 0.45rem;
+}
+
+.discovery-band__mini-copy strong {
+    display: block;
+    font-size: 0.83rem;
+}
+
+.discovery-band__mini-copy span {
+    display: block;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 0.73rem;
+}
+
+@media (max-width: 900px) {
+    .discovery-band__inner,
+    .discovery-band {
+        grid-template-columns: 1fr;
+    }
+
+    .discovery-band__shelf,
+    .discovery-band__stack {
+        padding: 0 1.1rem 1.1rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .discovery-band__shelf,
+    .discovery-band__stack {
+        grid-template-columns: repeat(3, 92px);
+        overflow-x: auto;
+        padding-bottom: 1rem;
+    }
+}
+
 .stack-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

@@ -5,6 +5,7 @@ require_once __DIR__ . '/Database.php';
 class ReportModel
 {
     private PDO $db;
+    private array $tableCache = [];
 
     public function __construct()
     {
@@ -310,5 +311,109 @@ class ReportModel
         );
         $stmt->execute(['desde' => $d, 'hasta' => $h]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Conversión de favoritos a lectura (por pareja usuario+libro en el período).
+     * Devuelve porcentaje, total origen y total convertido.
+     */
+    public function conversionFavoritosALectura(int $dias = 30, ?string $desde = null, ?string $hasta = null): array
+    {
+        [$d, $h] = $this->rango($desde, $hasta, $dias);
+
+        $origenSql =
+            'SELECT COUNT(*) FROM (
+                SELECT DISTINCT f.id_usuario, f.id_libro
+                FROM favoritos f
+                WHERE DATE(f.fecha_agregado) BETWEEN :desde AND :hasta
+            ) t';
+        $origenStmt = $this->db->prepare($origenSql);
+        $origenStmt->execute(['desde' => $d, 'hasta' => $h]);
+        $totalOrigen = (int) $origenStmt->fetchColumn();
+
+        if ($totalOrigen === 0) {
+            return ['pct' => 0, 'total_origen' => 0, 'total_convertido' => 0];
+        }
+
+        $convSql =
+            'SELECT COUNT(*) FROM (
+                SELECT DISTINCT f.id_usuario, f.id_libro
+                FROM favoritos f
+                INNER JOIN progreso_lectura p
+                    ON p.id_usuario = f.id_usuario
+                   AND p.id_libro = f.id_libro
+                WHERE DATE(f.fecha_agregado) BETWEEN :desde AND :hasta
+                  AND DATE(p.fecha_actualizacion) BETWEEN :desde AND :hasta
+            ) t';
+        $convStmt = $this->db->prepare($convSql);
+        $convStmt->execute(['desde' => $d, 'hasta' => $h]);
+        $totalConvertido = (int) $convStmt->fetchColumn();
+
+        return [
+            'pct' => (int) round(($totalConvertido / max(1, $totalOrigen)) * 100),
+            'total_origen' => $totalOrigen,
+            'total_convertido' => $totalConvertido,
+        ];
+    }
+
+    /**
+     * Conversión de lista de lectura a lectura (por pareja usuario+libro en el período).
+     * Si la tabla lista_lectura no existe, devuelve ceros.
+     */
+    public function conversionListaALectura(int $dias = 30, ?string $desde = null, ?string $hasta = null): array
+    {
+        if (!$this->tableExists('lista_lectura')) {
+            return ['pct' => 0, 'total_origen' => 0, 'total_convertido' => 0];
+        }
+
+        [$d, $h] = $this->rango($desde, $hasta, $dias);
+
+        $origenSql =
+            'SELECT COUNT(*) FROM (
+                SELECT DISTINCT ll.id_usuario, ll.id_libro
+                FROM lista_lectura ll
+                WHERE DATE(ll.fecha_agregado) BETWEEN :desde AND :hasta
+            ) t';
+        $origenStmt = $this->db->prepare($origenSql);
+        $origenStmt->execute(['desde' => $d, 'hasta' => $h]);
+        $totalOrigen = (int) $origenStmt->fetchColumn();
+
+        if ($totalOrigen === 0) {
+            return ['pct' => 0, 'total_origen' => 0, 'total_convertido' => 0];
+        }
+
+        $convSql =
+            'SELECT COUNT(*) FROM (
+                SELECT DISTINCT ll.id_usuario, ll.id_libro
+                FROM lista_lectura ll
+                INNER JOIN progreso_lectura p
+                    ON p.id_usuario = ll.id_usuario
+                   AND p.id_libro = ll.id_libro
+                WHERE DATE(ll.fecha_agregado) BETWEEN :desde AND :hasta
+                  AND DATE(p.fecha_actualizacion) BETWEEN :desde AND :hasta
+            ) t';
+        $convStmt = $this->db->prepare($convSql);
+        $convStmt->execute(['desde' => $d, 'hasta' => $h]);
+        $totalConvertido = (int) $convStmt->fetchColumn();
+
+        return [
+            'pct' => (int) round(($totalConvertido / max(1, $totalOrigen)) * 100),
+            'total_origen' => $totalOrigen,
+            'total_convertido' => $totalConvertido,
+        ];
+    }
+
+    private function tableExists(string $tableName): bool
+    {
+        if (array_key_exists($tableName, $this->tableCache)) {
+            return $this->tableCache[$tableName];
+        }
+
+        $stmt = $this->db->prepare('SHOW TABLES LIKE :table_name');
+        $stmt->execute(['table_name' => $tableName]);
+        $exists = (bool) $stmt->fetchColumn();
+        $this->tableCache[$tableName] = $exists;
+
+        return $exists;
     }
 }

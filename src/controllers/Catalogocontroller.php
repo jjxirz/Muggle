@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../models/Catalogomodel.php';
+require_once __DIR__ . '/../models/SystemLogModel.php';
 require_once __DIR__ . '/../lib/Auth.php';
 
 class CatalogoController
@@ -29,6 +30,17 @@ class CatalogoController
         $search      = trim((string) ($_GET['q'] ?? ''));
         $categoriaId = (int) ($_GET['cat'] ?? 0);
         $tipo        = trim((string) ($_GET['tipo'] ?? ''));
+        $planId      = (int) ($_GET['plan'] ?? 0);
+        $publicationStatus = trim((string) ($_GET['estado_publicacion'] ?? ''));
+
+        $supportsBookPlanFilter = $this->model->hasBookPlanColumn();
+        $supportsBookPublicationFilter = $this->model->hasBookPublicationColumns();
+        if (!$supportsBookPlanFilter) {
+            $planId = 0;
+        }
+        if (!$supportsBookPublicationFilter) {
+            $publicationStatus = '';
+        }
 
         // Libro en edición (tab=form&id=X)
         $libroEditar = null;
@@ -45,8 +57,9 @@ class CatalogoController
 
         return [
             'tab'             => $tab,
-            'libros'          => $this->model->getAllBooks($search, $categoriaId, $tipo),
+            'libros'          => $this->model->getAllBooks($search, $categoriaId, $tipo, $planId, $publicationStatus),
             'categorias'      => $this->model->getCategoryOptions(),   // para filtros/selects
+            'planes'          => $this->model->getPlanOptions(),
             'catList'         => $this->model->getAllCategories(),      // para tabla de categorías
             'libroEditar'     => $libroEditar,
             'catEditar'       => $catEditar,
@@ -55,6 +68,10 @@ class CatalogoController
             'filterSearch'    => $search,
             'filterCatId'     => $categoriaId,
             'filterTipo'      => $tipo,
+            'filterPlanId'    => $planId,
+            'filterPublicationStatus' => $publicationStatus,
+            'supportsBookPlanFilter' => $supportsBookPlanFilter,
+            'supportsBookPublicationFilter' => $supportsBookPublicationFilter,
         ];
     }
 
@@ -67,6 +84,7 @@ class CatalogoController
         require_valid_csrf();
 
         $action = trim((string) ($_POST['action'] ?? ''));
+        $adminId = (int) ($_SESSION['user_id'] ?? 0);
 
         try {
             switch ($action) {
@@ -78,7 +96,22 @@ class CatalogoController
                         throw new RuntimeException('ID de libro no válido.');
                     }
                     $this->model->updateBook($id, $_POST);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: libro actualizado',
+                        'Libro ID: ' . $id
+                    );
                     $this->setFlash('Libro actualizado correctamente.', 'success');
+                    $this->redirect('?tab=listado');
+
+                case 'create_book':
+                    $bookId = $this->model->createBook($_POST);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: libro creado',
+                        'Libro ID: ' . $bookId . ' | Título: ' . (string) ($_POST['titulo'] ?? 'sin-título')
+                    );
+                    $this->setFlash('Libro creado correctamente.', 'success');
                     $this->redirect('?tab=listado');
 
                 case 'delete_book':
@@ -87,12 +120,22 @@ class CatalogoController
                         throw new RuntimeException('ID de libro no válido.');
                     }
                     $this->model->deleteBook($id);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: libro eliminado',
+                        'Libro ID: ' . $id
+                    );
                     $this->setFlash('Libro eliminado correctamente.', 'success');
                     $this->redirect('?tab=listado');
 
                 // ── Categorías ──────────────────────────
                 case 'create_category':
                     $this->model->createCategory($_POST);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: categoría creada',
+                        'Nombre: ' . (string) ($_POST['nombre'] ?? 'sin-nombre')
+                    );
                     $this->setFlash('Categoría creada correctamente.', 'success');
                     $this->redirect('?tab=categorias');
 
@@ -102,6 +145,11 @@ class CatalogoController
                         throw new RuntimeException('ID de categoría no válido.');
                     }
                     $this->model->updateCategory($id, $_POST);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: categoría actualizada',
+                        'Categoría ID: ' . $id
+                    );
                     $this->setFlash('Categoría actualizada correctamente.', 'success');
                     $this->redirect('?tab=categorias');
 
@@ -111,6 +159,11 @@ class CatalogoController
                         throw new RuntimeException('ID de categoría no válido.');
                     }
                     $this->model->deleteCategory($id);
+                    SystemLogModel::record(
+                        $adminId > 0 ? $adminId : null,
+                        'Admin: categoría eliminada',
+                        'Categoría ID: ' . $id
+                    );
                     $this->setFlash('Categoría eliminada correctamente.', 'success');
                     $this->redirect('?tab=categorias');
 

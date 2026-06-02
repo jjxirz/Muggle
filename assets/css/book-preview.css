@@ -11,6 +11,64 @@ body.preview-open {
     outline-offset: 6px;
 }
 
+.book-favorite-indicator {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 3;
+
+    width: 28px;
+    height: 28px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 217, 102, 0.7);
+    background: rgba(14, 19, 32, 0.92);
+    color: #ffd95a;
+
+    opacity: 0;
+    transform: scale(0.92);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.book-favorite-indicator.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.book-progress-indicator {
+    position: absolute;
+    top: 44px;
+    left: 10px;
+    z-index: 3;
+
+    width: 28px;
+    height: 28px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    background: rgba(17, 19, 24, 0.92);
+    color: #ffffff;
+
+    opacity: 0;
+    transform: scale(0.92);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.book-progress-indicator.is-visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
 .book-cover-fallback {
     width: 100%;
     height: 100%;
@@ -191,7 +249,8 @@ body.preview-open {
 
 .book-preview-read-btn,
 .book-preview-icon-btn,
-.book-preview-list-btn {
+.book-preview-list-btn,
+.book-preview-favorite-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -225,7 +284,8 @@ body.preview-open {
 }
 
 .book-preview-icon-btn,
-.book-preview-list-btn {
+.book-preview-list-btn,
+.book-preview-favorite-btn {
     border: 1px solid rgba(255, 255, 255, 0.28);
 
     background: rgba(255, 255, 255, 0.08);
@@ -233,31 +293,52 @@ body.preview-open {
 }
 
 .book-preview-icon-btn:hover,
-.book-preview-list-btn:hover {
+.book-preview-list-btn:hover,
+.book-preview-favorite-btn:hover {
     background: rgba(255, 255, 255, 0.14);
 }
 
-.book-preview-list-btn {
+.book-preview-list-btn,
+.book-preview-favorite-btn {
     gap: 10px;
-    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.book-preview-list-btn i {
+.book-preview-list-btn i,
+.book-preview-favorite-btn i {
     transition: transform 0.2s ease, color 0.2s ease;
 }
 
-.book-preview-list-btn.is-favorite {
-    background: rgba(204, 39, 73, 0.22);
-    border-color: rgba(255, 122, 150, 0.8);
-    color: #ffdce4;
+.book-preview-list-btn.is-reading-list {
+    background: rgba(23, 53, 108, 0.34);
+    border-color: rgba(104, 146, 226, 0.95);
+    color: #d9e8ff;
+    box-shadow: 0 0 0 1px rgba(85, 129, 214, 0.35) inset;
 }
 
-.book-preview-list-btn.is-favorite i {
-    color: #ff6e90;
+.book-preview-list-btn.is-reading-list i {
+    color: #7db0ff;
+    transform: scale(1.08);
+}
+
+.book-preview-favorite-btn.is-favorite {
+    background: rgba(255, 214, 102, 0.18);
+    border-color: rgba(255, 226, 152, 0.9);
+    color: #fff5d2;
+    box-shadow: 0 0 0 1px rgba(255, 217, 120, 0.4) inset;
+}
+
+.book-preview-favorite-btn.is-favorite i {
+    color: #ffd666;
     transform: scale(1.08);
 }
 
 .book-preview-list-btn:disabled {
+    opacity: 0.7;
+    cursor: wait;
+}
+
+.book-preview-favorite-btn:disabled {
     opacity: 0.7;
     cursor: wait;
 }

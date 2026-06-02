@@ -97,6 +97,7 @@ function activeClass($page, $active_page)
     <title><?= h($page_title); ?> | Hogwarts</title>
 
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/notifications.css">
     <?php if (!empty($extra_stylesheets) && is_array($extra_stylesheets)): ?>
         <?php foreach ($extra_stylesheets as $stylesheet): ?>
             <link rel="stylesheet" href="<?= h((string) $stylesheet); ?>">

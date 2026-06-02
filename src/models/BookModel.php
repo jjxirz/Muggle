@@ -172,6 +172,32 @@ class BookModel
         return $stmt->fetchAll();
     }
 
+    /**
+     * Returns all published books suitable for the public catalog.
+     * Handles optional columns (estado_publicacion, id_plan_minimo) gracefully
+     * so the query works whether the DB was created from script.sql or from the
+     * model's ensureAdminTables() bootstrapper.
+     */
+    public function getCatalogBooks(): array
+    {
+        $hasEstado = $this->columnExists('libros', 'estado_publicacion');
+        $hasPlan   = $this->columnExists('libros', 'id_plan_minimo');
+        $hasPlanes = $this->tableExists('planes');
+
+        $planJoin   = ($hasPlan && $hasPlanes) ? "LEFT JOIN planes p ON p.id_plan = l.id_plan_minimo\n             " : '';
+        $planSelect = ($hasPlan && $hasPlanes) ? ', p.nombre AS plan_nombre' : '';
+        $whereEstado = $hasEstado ? "WHERE l.estado_publicacion = 'publicado'" : '';
+
+        $sql = "SELECT l.*, c.nombre AS categoria{$planSelect}
+             FROM libros l
+             LEFT JOIN categorias c ON c.id_categoria = l.id_categoria
+             {$planJoin}{$whereEstado}
+             ORDER BY l.titulo ASC";
+
+        $stmt = $this->db->query($sql);
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->db->prepare(

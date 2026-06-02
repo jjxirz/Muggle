@@ -26,6 +26,8 @@ $subs             = $report->suscripcionesPorPlan($dias, $desdeParam, $hastaPara
 $progresoUsuarios = $report->progresoUsuarios(10, $desdeParam, $hastaParam);
 $librosAgregados  = $report->librosAgregados($dias, $desdeParam, $hastaParam);
 $usuariosAgregados = $report->usuariosAgregados($dias, $desdeParam, $hastaParam);
+$convFavoritos = $report->conversionFavoritosALectura($dias, $desdeParam, $hastaParam);
+$convLista = $report->conversionListaALectura($dias, $desdeParam, $hastaParam);
 $hayDatos         = $report->totalSesiones($dias, $desdeParam, $hastaParam) > 0;
 
 $maxSubs  = !empty($subs) ? max(array_column($subs, 'cantidad')) : 1;
@@ -112,6 +114,27 @@ include __DIR__ . '/../layouts/sidebar.php';
                 <div class="stat-label">Plan más contratado</div>
                 <div class="stat-value" style="font-size:1.1rem"><?= htmlspecialchars($planTop) ?></div>
                 <div class="stat-sub stat-sub--neutral">en el período</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-label">Conversión favoritos → lectura</div>
+                <div class="stat-value"><?= (int) $convFavoritos['pct'] ?>%</div>
+                <div class="stat-sub stat-sub--neutral">
+                    <?= (int) $convFavoritos['total_convertido'] ?> de <?= (int) $convFavoritos['total_origen'] ?> parejas usuario/libro
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="stat-card">
+                <div class="stat-label">Conversión lista lectura → lectura</div>
+                <div class="stat-value"><?= (int) $convLista['pct'] ?>%</div>
+                <div class="stat-sub stat-sub--neutral">
+                    <?= (int) $convLista['total_convertido'] ?> de <?= (int) $convLista['total_origen'] ?> parejas usuario/libro
+                </div>
             </div>
         </div>
     </div>
@@ -319,8 +342,18 @@ include __DIR__ . '/../layouts/sidebar.php';
     document.getElementById('btnAplicar').addEventListener('click', function () {
         var d = document.getElementById('inputDesde').value;
         var h = document.getElementById('inputHasta').value;
-        if (!d || !h)  { alert('Selecciona ambas fechas.'); return; }
-        if (d > h)     { alert('La fecha inicio debe ser anterior a la fecha final.'); return; }
+        if (!d || !h)  {
+            if (window.AppNotify) {
+                window.AppNotify.warning('Selecciona ambas fechas.', { timeout: 2400 });
+            }
+            return;
+        }
+        if (d > h)     {
+            if (window.AppNotify) {
+                window.AppNotify.warning('La fecha inicio debe ser anterior a la fecha final.', { timeout: 2600 });
+            }
+            return;
+        }
         location.href = '?periodo=custom&desde=' + encodeURIComponent(d) + '&hasta=' + encodeURIComponent(h);
     });
 

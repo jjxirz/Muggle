@@ -69,5 +69,9 @@ if (!isset($current_house)) {
 
 <?php require_once __DIR__ . '/developers-modal.php'; ?>
 
+<div class="app-notify-stack" data-notify-theme="public" aria-live="polite" aria-atomic="true"></div>
+
+<script src="assets/js/notifications.js"></script>
+
 </body>
 </html>

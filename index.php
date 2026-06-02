@@ -364,6 +364,12 @@ function renderBookCard(array $book): void
         data-tags="<?php echo e($tags); ?>">
         <div class="book-cover">
             <span class="book-plan-badge book-plan-badge--<?php echo e($planClass); ?>"><?php echo e($plan); ?></span>
+            <span class="book-progress-indicator" aria-label="Lectura en progreso" title="Lectura en progreso">
+                <i class="fas fa-book-open" aria-hidden="true"></i>
+            </span>
+            <span class="book-favorite-indicator" aria-label="Favorito" title="Favorito">
+                <i class="fas fa-star" aria-hidden="true"></i>
+            </span>
             <?php if ($cover !== ''): ?>
                 <img src="<?php echo e($cover); ?>" alt="<?php echo e($title); ?>" class="cover-img">
             <?php else: ?>
@@ -388,7 +394,12 @@ function renderBookCard(array $book): void
 <?php
 }
 
-$pdfBooks = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
+// Load catalog from DB; fall back to folder scan if the table is empty or unavailable
+require_once __DIR__ . '/includes/catalog_helpers.php';
+$pdfBooks = catalog_books_from_db();
+if (empty($pdfBooks)) {
+    $pdfBooks = getPdfBooksFromFolder(__DIR__ . '/assets/books', $assetUrl, $bookImagesPath, $bookImagesUrl);
+}
 $featuredBook = $pdfBooks[0] ?? null;
 $featuredSlides = array_slice($pdfBooks, 0, 5);
 $bookSections = array_chunk($pdfBooks, 5);
@@ -402,6 +413,7 @@ $bookSections = array_chunk($pdfBooks, 5);
     <title>Hogwarts | Biblioteca digital</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <link rel="stylesheet" href="assets/css/book-preview.css">
+    <link rel="stylesheet" href="assets/css/notifications.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <meta name="app-base-url" content="<?php echo e($baseUrl); ?>">
@@ -1103,7 +1115,7 @@ $bookSections = array_chunk($pdfBooks, 5);
 
     </main>
 
-    <div class="book-preview-backdrop" id="bookPreviewBackdrop" aria-hidden="true">
+    <div class="book-preview-backdrop" id="bookPreviewBackdrop" aria-hidden="true" data-api-url="<?php echo e(app_url('src/controllers/library_api.php')); ?>" data-csrf-token="<?php echo e(csrf_token()); ?>">
         <div class="book-preview-modal" role="dialog" aria-modal="true" aria-labelledby="bookPreviewTitle">
             <button type="button" class="book-preview-close" id="bookPreviewClose" aria-label="Cerrar">×</button>
 
@@ -1115,7 +1127,14 @@ $bookSections = array_chunk($pdfBooks, 5);
                     <p class="book-preview-author" id="bookPreviewAuthor">Autor</p>
                     <div class="book-preview-actions">
                         <a href="#" class="book-preview-read-btn" id="bookPreviewReadBtn">Comenzar lectura</a>
-                        <button type="button" class="book-preview-list-btn" id="bookPreviewFavoriteBtn">Mi lista</button>
+                        <button type="button" class="book-preview-list-btn" id="bookPreviewReadingListBtn" aria-pressed="false">
+                            <i class="far fa-bookmark" aria-hidden="true"></i>
+                            <span>Agregar a lectura</span>
+                        </button>
+                        <button type="button" class="book-preview-favorite-btn" id="bookPreviewFavoriteBtn" aria-pressed="false">
+                            <i class="far fa-star" aria-hidden="true"></i>
+                            <span>Favorito</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1232,247 +1251,11 @@ $bookSections = array_chunk($pdfBooks, 5);
                 }
             }
 
-            const backdrop = document.getElementById('bookPreviewBackdrop');
-            const closeBtn = document.getElementById('bookPreviewClose');
-
-            if (!backdrop || !closeBtn) {
-                return;
-            }
-
-            const hero = document.getElementById('bookPreviewHero');
-            const title = document.getElementById('bookPreviewTitle');
-            const author = document.getElementById('bookPreviewAuthor');
-            const categoryTop = document.getElementById('bookPreviewCategoryTop');
-            const initial = document.getElementById('bookPreviewInitial');
-            const coverTitle = document.getElementById('bookPreviewCoverTitle');
-            const coverBox = document.getElementById('bookPreviewCoverBox');
-            const coverImg = document.getElementById('bookPreviewCoverImg');
-            const year = document.getElementById('bookPreviewYear');
-            const category = document.getElementById('bookPreviewCategory');
-            const pages = document.getElementById('bookPreviewPages');
-            const description = document.getElementById('bookPreviewDescription');
-            const tags = document.getElementById('bookPreviewTags');
-            const readBtn = document.getElementById('bookPreviewReadBtn');
-            const favoriteBtn = document.getElementById('bookPreviewFavoriteBtn');
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-            const apiUrl = '<?php echo e(app_url('src/controllers/library_api.php')); ?>';
-            let activeBookPayload = null;
-
-            function buildBookPayload(data) {
-                return {
-                    file: data.file || '',
-                    title: data.title || '',
-                    author: data.author || '',
-                    description: data.description || '',
-                    type: data.type || 'pdf'
-                };
-            }
-
-            async function refreshFavoriteButton(payload) {
-                if (!favoriteBtn || !payload) {
-                    return;
-                }
-
-                try {
-                    const params = new URLSearchParams({
-                        action: 'favorite_status',
-                        file: payload.file,
-                        title: payload.title,
-                        author: payload.author,
-                        description: payload.description,
-                        type: payload.type
-                    });
-
-                    const response = await fetch(apiUrl + '?' + params.toString(), {
-                        credentials: 'same-origin'
-                    });
-                    const result = await response.json();
-
-                    if (!response.ok || !result.ok) {
-                        favoriteBtn.textContent = 'Mi lista';
-                        return;
-                    }
-
-                    favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
-                } catch (error) {
-                    favoriteBtn.textContent = 'Mi lista';
-                }
-            }
-
-            function setText(element, value, fallback) {
-                if (!element) {
-                    return;
-                }
-
-                element.textContent = value && value.trim() !== '' ? value : fallback;
-            }
-
-            function openPreview(card) {
-                const data = card.dataset;
-                const bookTitle = data.title || 'Obra sin identificar';
-                const bookCategory = data.category || 'Lectura digital';
-                const bookPdf = data.pdf || '';
-                const bookReader = data.reader || '';
-                const bookCover = data.cover || '';
-                activeBookPayload = buildBookPayload(data);
-
-                setText(title, bookTitle, 'Obra sin identificar');
-                setText(author, data.author, 'Autor no especificado');
-                setText(categoryTop, bookCategory, 'Lectura digital');
-                setText(initial, bookTitle.substring(0, 1), 'L');
-                setText(coverTitle, bookTitle, 'Libro');
-                setText(year, data.year, 'Disponible');
-                setText(category, bookCategory, 'Lectura digital');
-                setText(pages, data.pages, 'Archivo disponible');
-                setText(description, data.description, 'Obra disponible en el catálogo digital de la biblioteca.');
-
-                if (bookCover && coverImg && coverBox) {
-                    coverImg.src = bookCover;
-                    coverImg.alt = 'Portada de ' + bookTitle;
-                    coverImg.style.display = 'block';
-                    coverBox.classList.add('has-image');
-
-                    if (initial) {
-                        initial.style.display = 'none';
-                    }
-
-                    if (coverTitle) {
-                        coverTitle.style.display = 'none';
-                    }
-                } else if (coverImg && coverBox) {
-                    coverImg.removeAttribute('src');
-                    coverImg.alt = '';
-                    coverImg.style.display = 'none';
-                    coverBox.classList.remove('has-image');
-
-                    if (initial) {
-                        initial.style.display = 'inline-flex';
-                    }
-
-                    if (coverTitle) {
-                        coverTitle.style.display = 'block';
-                    }
-                }
-
-                if (hero) {
-                    const backgroundImage = data.banner || bookCover;
-                    hero.style.backgroundImage = backgroundImage ? 'url("' + backgroundImage + '")' : 'none';
-                }
-
-                if (tags) {
-                    tags.innerHTML = '';
-
-                    const tagList = (data.tags || bookCategory)
-                        .split(',')
-                        .map(function(tag) {
-                            return tag.trim();
-                        })
-                        .filter(Boolean);
-
-                    tagList.forEach(function(tag) {
-                        const span = document.createElement('span');
-                        span.textContent = tag;
-                        tags.appendChild(span);
-                    });
-                }
-
-                if (bookPdf) {
-                    readBtn.href = bookReader || bookPdf;
-                    readBtn.textContent = 'Comenzar lectura';
-                    readBtn.style.pointerEvents = 'auto';
-                    readBtn.style.opacity = '1';
-                } else {
-                    readBtn.href = '#';
-                    readBtn.textContent = 'Lectura no disponible';
-                    readBtn.style.pointerEvents = 'none';
-                    readBtn.style.opacity = '0.55';
-                }
-
-                refreshFavoriteButton(activeBookPayload);
-
-                backdrop.classList.add('is-open');
-                backdrop.setAttribute('aria-hidden', 'false');
-                document.body.classList.add('preview-open');
-                closeBtn.focus();
-            }
-
-            function closePreview() {
-                backdrop.classList.remove('is-open');
-                backdrop.setAttribute('aria-hidden', 'true');
-                document.body.classList.remove('preview-open');
-            }
-
-            document.querySelectorAll('.js-book-preview').forEach(function(card) {
-                card.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    openPreview(card);
-                });
-
-                card.addEventListener('keydown', function(event) {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        openPreview(card);
-                    }
-                });
-            });
-
-            closeBtn.addEventListener('click', closePreview);
-
-            if (favoriteBtn) {
-                favoriteBtn.addEventListener('click', async function() {
-                    if (!activeBookPayload || !csrfToken) {
-                        return;
-                    }
-
-                    const payload = new URLSearchParams({
-                        action: 'toggle_favorite',
-                        csrf_token: csrfToken,
-                        file: activeBookPayload.file,
-                        title: activeBookPayload.title,
-                        author: activeBookPayload.author,
-                        description: activeBookPayload.description,
-                        type: activeBookPayload.type
-                    });
-
-                    favoriteBtn.disabled = true;
-
-                    try {
-                        const response = await fetch(apiUrl, {
-                            method: 'POST',
-                            credentials: 'same-origin',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded'
-                            },
-                            body: payload.toString()
-                        });
-
-                        const result = await response.json();
-                        if (!response.ok || !result.ok) {
-                            throw new Error('No se pudo actualizar favoritos.');
-                        }
-
-                        favoriteBtn.textContent = result.data.is_favorite ? 'Quitar de mi lista' : 'Agregar a mi lista';
-                    } catch (error) {
-                        alert('No se pudo actualizar tu lista en este momento.');
-                    } finally {
-                        favoriteBtn.disabled = false;
-                    }
-                });
-            }
-
-            backdrop.addEventListener('click', function(event) {
-                if (event.target === backdrop) {
-                    closePreview();
-                }
-            });
-
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape' && backdrop.classList.contains('is-open')) {
-                    closePreview();
-                }
-            });
         });
     </script>
+    <div class="app-notify-stack" data-notify-theme="public" aria-live="polite" aria-atomic="true"></div>
+    <script src="assets/js/notifications.js"></script>
+    <script src="assets/js/public-book-preview.js"></script>
 
 </body>
 

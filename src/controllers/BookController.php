@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/../models/BookModel.php';
 require_once __DIR__ . '/../models/OpenLibraryService.php';
+require_once __DIR__ . '/../models/SystemLogModel.php';
 require_once __DIR__ . '/../lib/Auth.php';
 require_once __DIR__ . '/../lib/App.php';
 
@@ -93,6 +94,7 @@ class BookController
         require_valid_csrf();
 
         $action = $_POST['action'] ?? '';
+        $adminId = (int) ($_SESSION['user_id'] ?? 0);
 
         try {
             $payload = $_POST;
@@ -107,6 +109,12 @@ class BookController
                     $this->bookModel->saveBannerForBook($bookId, (string) $payload['imagen']);
                 }
 
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: libro creado',
+                    'Libro ID: ' . $bookId . ' | Título: ' . (string) ($payload['titulo'] ?? 'sin-título')
+                );
+
                 $this->setFlash('Libro creado correctamente.', 'success');
                 $this->redirectToAdmin();
             }
@@ -119,12 +127,24 @@ class BookController
                     $this->bookModel->saveBannerForBook($bookId, (string) $payload['imagen']);
                 }
 
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: libro actualizado',
+                    'Libro ID: ' . $bookId . ' | Título: ' . (string) ($payload['titulo'] ?? 'sin-título')
+                );
+
                 $this->setFlash('Libro actualizado correctamente.', 'success');
                 $this->redirectToAdmin();
             }
 
             if ($action === 'delete' && isset($_POST['id_libro'])) {
-                $this->bookModel->delete((int) $_POST['id_libro']);
+                $bookId = (int) $_POST['id_libro'];
+                $this->bookModel->delete($bookId);
+                SystemLogModel::record(
+                    $adminId > 0 ? $adminId : null,
+                    'Admin: libro eliminado',
+                    'Libro ID: ' . $bookId
+                );
                 $this->setFlash('Libro eliminado correctamente.', 'success');
                 $this->redirectToAdmin();
             }

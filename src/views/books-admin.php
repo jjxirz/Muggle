@@ -389,7 +389,9 @@ metadataLookupBtn.addEventListener('click', async () => {
     const mode = identifierModeInput.value;
 
     if (!identifier) {
-        alert('Ingresa un ISBN o DOI para autocompletar.');
+        if (window.AppNotify) {
+            window.AppNotify.warning('Ingresa un ISBN o DOI para autocompletar.', { timeout: 2300 });
+        }
         return;
     }
 
@@ -398,8 +400,13 @@ metadataLookupBtn.addEventListener('click', async () => {
 
     try {
         await fetchAndApplyMetadata(identifier, mode);
+        if (window.AppNotify) {
+            window.AppNotify.success('Datos del libro cargados.', { timeout: 1900 });
+        }
     } catch (error) {
-        alert(error.message || 'No fue posible consultar metadata del libro.');
+        if (window.AppNotify) {
+            window.AppNotify.error(error.message || 'No fue posible consultar metadata del libro.', { timeout: 2600 });
+        }
     } finally {
         metadataLookupBtn.disabled = false;
         metadataLookupBtn.textContent = 'Autocompletar';

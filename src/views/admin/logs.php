@@ -1,4 +1,25 @@
 <?php
+require_once __DIR__ . '/../../lib/Auth.php';
+require_once __DIR__ . '/../../models/AdminLogModel.php';
+
+require_admin();
+
+$errorMessage = null;
+$metrics = ['total' => 0, 'warnings' => 0, 'errors' => 0];
+$logs = [];
+
+try {
+    $model = new AdminLogModel();
+    $metrics = $model->getTodayMetrics();
+    $logs = $model->getRecentLogs(250);
+} catch (Throwable $e) {
+    $errorMessage = $e->getMessage();
+}
+
+$totalLogs = (int) ($metrics['total'] ?? 0);
+$totalWarnings = (int) ($metrics['warnings'] ?? 0);
+$totalErrores = (int) ($metrics['errors'] ?? 0);
+
 $activePage = 'logs';
 
 include __DIR__ . '/../layouts/sidebar.php';
@@ -23,26 +44,32 @@ include __DIR__ . '/../layouts/sidebar.php';
 <!-- ===== CONTENIDO ===== -->
 <div class="admin-content">
 
+    <?php if ($errorMessage !== null): ?>
+        <div class="app-flash app-flash--error" style="margin:0 0 14px 0;">
+            No se pudieron cargar los logs del sistema. <?= htmlspecialchars($errorMessage) ?>
+        </div>
+    <?php endif; ?>
+
     <!-- Métricas rápidas -->
     <div class="row mb-4">
         <div class="col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Eventos hoy</div>
-                <div class="stat-value"><?= $totalLogs ?? 147 ?></div>
+                <div class="stat-value"><?= $totalLogs ?></div>
                 <div class="stat-sub stat-sub--neutral">Total de entradas</div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Advertencias</div>
-                <div class="stat-value log-metric--warn"><?= $totalWarnings ?? 12 ?></div>
+                <div class="stat-value log-metric--warn"><?= $totalWarnings ?></div>
                 <div class="stat-sub stat-sub--neutral">Requieren revisión</div>
             </div>
         </div>
         <div class="col-md-4 col-sm-6 mb-3">
             <div class="stat-card">
                 <div class="stat-label">Errores</div>
-                <div class="stat-value log-metric--error"><?= $totalErrores ?? 3 ?></div>
+                <div class="stat-value log-metric--error"><?= $totalErrores ?></div>
                 <div class="stat-sub stat-sub--neutral">Acción requerida</div>
             </div>
         </div>
@@ -100,24 +127,19 @@ include __DIR__ . '/../layouts/sidebar.php';
                 </thead>
                 <tbody>
                     <?php
-                    $logs = $logs ?? [
-                        ['hora' => '09:41', 'tipo' => 'info',    'mensaje' => 'Inicio de sesión exitoso',                    'usuario' => 'maria@mail.com',  'ip' => '192.168.1.4', 'detalle' => null],
-                        ['hora' => '09:38', 'tipo' => 'info',    'mensaje' => 'Libro agregado al catálogo',                  'usuario' => 'admin',           'ip' => '192.168.1.1', 'detalle' => 'Libro: El origen de las especies'],
-                        ['hora' => '09:22', 'tipo' => 'warning', 'mensaje' => 'Acceso a contenido Premium sin plan activo',  'usuario' => 'juan@mail.com',   'ip' => '10.0.0.22',   'detalle' => 'Libro ID #88'],
-                        ['hora' => '09:10', 'tipo' => 'error',   'mensaje' => 'Error al subir archivo PDF (tamaño excedido)','usuario' => 'admin',           'ip' => '192.168.1.1', 'detalle' => 'Archivo: Dune.pdf · 48MB'],
-                        ['hora' => '08:55', 'tipo' => 'info',    'mensaje' => 'Nuevo usuario registrado',                   'usuario' => 'ana@mail.com',    'ip' => '10.0.0.9',    'detalle' => 'Plan: Free'],
-                        ['hora' => '08:30', 'tipo' => 'info',    'mensaje' => 'Membresía actualizada a Premium',             'usuario' => 'pedro@mail.com',  'ip' => '10.0.1.15',   'detalle' => 'Plan Plus → Premium'],
-                        ['hora' => '08:12', 'tipo' => 'error',   'mensaje' => 'Fallo de autenticación Google OAuth',         'usuario' => '—',               'ip' => '10.0.0.9',    'detalle' => '3 intentos consecutivos'],
-                        ['hora' => '07:58', 'tipo' => 'warning', 'mensaje' => 'Sesión expirada sin cierre manual',           'usuario' => 'laura@mail.com',  'ip' => '192.168.2.8', 'detalle' => null],
-                        ['hora' => '07:40', 'tipo' => 'info',    'mensaje' => 'Categoría eliminada',                        'usuario' => 'admin',           'ip' => '192.168.1.1', 'detalle' => 'Categoría: Manga'],
-                        ['hora' => '07:15', 'tipo' => 'warning', 'mensaje' => 'Múltiples intentos de login fallidos',        'usuario' => 'desconocido',     'ip' => '185.23.44.1', 'detalle' => '7 intentos · posible bot'],
-                    ];
-
                     $iconos = [
                         'info'    => 'fas fa-info-circle',
                         'warning' => 'fas fa-exclamation-triangle',
                         'error'   => 'fas fa-times-circle',
                     ];
+
+                    if (empty($logs)): ?>
+                    <tr>
+                        <td colspan="5" class="text-center text-muted" style="padding:22px 12px;">
+                            No hay entradas de logs disponibles aún.
+                        </td>
+                    </tr>
+                    <?php endif;
 
                     foreach ($logs as $i => $log): ?>
                     <tr class="log-row" data-tipo="<?= $log['tipo'] ?>">
@@ -156,7 +178,7 @@ include __DIR__ . '/../layouts/sidebar.php';
         <!-- Paginación -->
         <div class="logs-pagination">
             <span class="pagination-info">
-                Mostrando <strong id="logsVisibles"><?= count($logs ?? []) ?></strong> de <strong><?= $totalLogs ?? 147 ?></strong> entradas
+                Mostrando <strong id="logsVisibles"><?= count($logs ?? []) ?></strong> de <strong><?= count($logs ?? []) ?></strong> entradas
             </span>
             <div class="pagination-btns">
                 <button class="btn-admin btn-admin--secondary btn-sm" id="btnPagAnterior" disabled>
