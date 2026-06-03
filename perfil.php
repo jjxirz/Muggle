@@ -85,6 +85,7 @@ $user = [
     'member_since' => (string) ($freshUser['fecha_registro'] ?? date('Y-m-d')),
     'theme_enabled' => isset($freshUser['tema_habilitado']) ? (int) $freshUser['tema_habilitado'] === 1 : (bool) ($_SESSION['theme_enabled'] ?? true),
     'house' => (string) ($freshUser['casa_preferida'] ?? ($_SESSION['selected_house'] ?? 'ravenclaw')),
+    'google_picture_url' => (string) ($freshUser['google_picture_url'] ?? ''),
 ];
 
 $role = strtolower($user['role']);
@@ -232,7 +233,11 @@ $canClaimTrial = !$is_admin && (bool) ($subscription['can_claim_trial'] ?? false
         <div class="profile-hero">
             <div class="profile-user-block">
                 <div class="profile-avatar">
-                    <i class="fas fa-user"></i>
+                    <?php if (!empty($user['google_picture_url'])): ?>
+                        <img src="<?= h($user['google_picture_url']); ?>" alt="<?= h($user['name']); ?>" class="profile-avatar-img">
+                    <?php else: ?>
+                        <i class="fas fa-user"></i>
+                    <?php endif; ?>
                 </div>
 
                 <div class="profile-user-info">

@@ -1,10 +1,12 @@
--- =====================================================
--- Muggle: instalacion limpia (from scratch)
--- =====================================================
+-- 1. Borra la base de datos por completo si ya existía de pruebas anteriores
+DROP DATABASE IF EXISTS muggle;
 
+-- 2. Crea la base de datos limpia con el formato de texto correcto
 CREATE DATABASE IF NOT EXISTS muggle
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
+
+-- 3. Selecciona la base de datos para empezar a crear las tablas
 USE muggle;
 
 SET FOREIGN_KEY_CHECKS = 0;
@@ -37,6 +39,7 @@ CREATE TABLE usuarios (
   password VARCHAR(255) NOT NULL,
   auth_provider ENUM('local','google') NOT NULL DEFAULT 'local',
   google_sub VARCHAR(64) NULL,
+  google_picture_url VARCHAR(255) NULL,
   prueba_7d_usada TINYINT(1) NOT NULL DEFAULT 0,
   estado ENUM('activo','inactivo','baneado') NOT NULL DEFAULT 'activo',
   id_rol INT,

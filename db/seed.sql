@@ -1,10 +1,4 @@
--- =====================================================
--- Muggle: seed de libros con ISBNs validados
--- Ejecutar DESPUÉS de script.sql
--- Open Library cubre 40 de 56; para los 16 restantes
--- se usa la info del archivo "libros con isbn.txt".
--- =====================================================
-
+use muggle;
 -- ── Planes base ──────────────────────────────────────
 INSERT IGNORE INTO planes (id_plan, nombre, precio, descripcion, duracion_dias) VALUES
   (1, 'Gratis',   0.00, 'Acceso al catálogo gratuito',       0),

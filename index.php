@@ -437,7 +437,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             background: rgba(255, 255, 255, 0.1);
             color: #ffffff;
             border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 999px;
             padding: 0.25rem 0.8rem;
             font-size: 0.75rem;
         }
@@ -481,7 +480,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             border: 1px solid rgba(255, 255, 255, 0.18);
             background: rgba(255, 255, 255, 0.08);
             color: #ffffff;
-            border-radius: 999px;
             padding: 0.45rem 0.75rem;
             font: inherit;
             cursor: pointer;
@@ -509,7 +507,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             display: none;
             padding: 0.75rem;
             border: 1px solid rgba(255, 255, 255, 0.14);
-            border-radius: 16px;
             background: #151515;
             box-shadow: 0 18px 45px rgba(0, 0, 0, 0.38);
             z-index: 9999;
@@ -554,7 +551,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             gap: 0.55rem;
             width: 100%;
             padding: 0.62rem 0.65rem;
-            border-radius: 10px;
             color: #ffffff !important;
             text-decoration: none;
             font-size: 0.9rem;
@@ -577,7 +573,6 @@ $bookSections = array_chunk($pdfBooks, 5);
         .dropdown-theme-box {
             padding: 0.58rem 0.65rem;
             margin: 0.25rem 0 0.35rem;
-            border-radius: 12px;
             background: rgba(255, 255, 255, 0.06);
         }
 
@@ -593,7 +588,6 @@ $bookSections = array_chunk($pdfBooks, 5);
         .dropdown-theme-box select {
             width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 999px;
             background: #101010;
             color: #ffffff;
             padding: 0.45rem 0.65rem;
@@ -632,7 +626,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             justify-content: center;
 
             padding: 0.28rem 0.55rem;
-            border-radius: 999px;
 
             font-size: 0.66rem;
             font-weight: 800;
@@ -815,7 +808,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             width: min(980px, 100%);
             border: 1px solid rgba(255, 255, 255, 0.16);
             background: rgba(10, 10, 10, 0.88);
-            border-radius: 18px;
             padding: 2.9rem 3rem;
             backdrop-filter: blur(2px);
             margin: 0 auto;
@@ -864,7 +856,6 @@ $bookSections = array_chunk($pdfBooks, 5);
         .featured-hero .hero-buttons .btn {
             min-height: 46px;
             padding: 0.8rem 1.35rem;
-            border-radius: 8px;
             font-size: 0.95rem;
         }
 
@@ -886,7 +877,6 @@ $bookSections = array_chunk($pdfBooks, 5);
             .featured-hero .hero-panel.featured-hero-panel {
                 width: 100%;
                 padding: 1.55rem 1.15rem;
-                border-radius: 14px;
             }
 
             .featured-hero .hero-badge {
@@ -929,7 +919,6 @@ $bookSections = array_chunk($pdfBooks, 5);
         .hero-carousel-dot {
             width: 10px;
             height: 10px;
-            border-radius: 999px;
             border: 1px solid rgba(255, 255, 255, 0.35);
             background: rgba(255, 255, 255, 0.25);
             cursor: pointer;

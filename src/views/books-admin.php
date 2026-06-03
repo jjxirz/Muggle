@@ -52,7 +52,6 @@ include __DIR__ . '/layouts/sidebar.php';
 <style>
         .btn {
             border: 0;
-            border-radius: 8px;
             padding: 10px 14px;
             cursor: pointer;
             font-weight: 700;
@@ -64,7 +63,6 @@ include __DIR__ . '/layouts/sidebar.php';
         .btn-danger { background: #E24B4A; color: #fff; }
         .btn-icon {
             border: 0;
-            border-radius: 8px;
             width: 36px;
             height: 36px;
             display: inline-flex;
@@ -86,7 +84,6 @@ include __DIR__ . '/layouts/sidebar.php';
         }
         .card {
             background: #fff;
-            border-radius: 12px;
             padding: 16px;
             box-shadow: 0 6px 14px rgba(0, 0, 0, 0.07);
         }
@@ -97,7 +94,6 @@ include __DIR__ . '/layouts/sidebar.php';
         .flash {
             margin-bottom: 12px;
             padding: 12px;
-            border-radius: 8px;
             font-weight: 700;
         }
         .flash.success { background: #EAF3DE; color: #3B6D11; }
@@ -113,7 +109,6 @@ include __DIR__ . '/layouts/sidebar.php';
             width: 100%;
             margin-top: 6px;
             border: 1px solid #d1d5db;
-            border-radius: 8px;
             padding: 10px;
             font-size: 14px;
         }
@@ -142,14 +137,12 @@ include __DIR__ . '/layouts/sidebar.php';
             width: 50px;
             height: 75px;
             object-fit: cover;
-            border-radius: 4px;
             background: #eee;
         }
         .banner-thumb {
             width: 90px;
             height: 50px;
             object-fit: cover;
-            border-radius: 6px;
             background: #eee;
             border: 1px solid #e5e7eb;
         }
@@ -158,7 +151,6 @@ include __DIR__ . '/layouts/sidebar.php';
             max-width: 260px;
             height: 110px;
             object-fit: cover;
-            border-radius: 8px;
             background: #eee;
             border: 1px solid #e5e7eb;
         }
@@ -174,7 +166,6 @@ include __DIR__ . '/layouts/sidebar.php';
         .empty {
             padding: 16px;
             background: #fff8e1;
-            border-radius: 8px;
             color: #92400e;
             font-weight: 700;
         }

@@ -5,19 +5,22 @@ require_once __DIR__ . '/Database.php';
 class AuthModel
 {
     private PDO $db;
+    private bool $hasPictureColumn;
 
     public function __construct()
     {
         $this->db = Database::getConnection();
         $this->ensurePreferenceColumns();
         $this->ensureAuthColumns();
+        $this->ensurePictureColumn();
         $this->ensureTrialPlan();
+        $this->hasPictureColumn = $this->columnExists('usuarios', 'google_picture_url');
     }
 
-    public function findUserByEmail(string $email): ?array
+    private function getUserSelectSQL(): string
     {
-        $stmt = $this->db->prepare(
-            'SELECT u.id_usuario,
+        $pictureCol = $this->hasPictureColumn ? ', u.google_picture_url' : '';
+        return "SELECT u.id_usuario,
                     u.nombre,
                     u.email,
                     u.password,
@@ -26,10 +29,35 @@ class AuthModel
                     u.tema_habilitado,
                     u.casa_preferida,
                     u.auth_provider,
-                    u.google_sub,
+                    u.google_sub{$pictureCol},
                     u.prueba_7d_usada,
                     r.nombre AS rol_nombre,
-                    p.nombre AS plan_nombre
+                    p.nombre AS plan_nombre";
+    }
+
+    private function getUserSelectSQLWithoutPassword(): string
+    {
+        $pictureCol = $this->hasPictureColumn ? ', u.google_picture_url' : '';
+        return "SELECT u.id_usuario,
+                    u.nombre,
+                    u.email,
+                    u.estado,
+                    u.id_rol,
+                    u.tema_habilitado,
+                    u.casa_preferida,
+                    u.auth_provider,
+                    u.google_sub{$pictureCol},
+                    u.prueba_7d_usada,
+                    u.fecha_registro,
+                    r.nombre AS rol_nombre,
+                    s.id_plan AS plan_id,
+                    p.nombre AS plan_nombre";
+    }
+
+    public function findUserByEmail(string $email): ?array
+    {
+        $stmt = $this->db->prepare(
+            $this->getUserSelectSQL() . '
              FROM usuarios u
              LEFT JOIN roles r ON r.id_rol = u.id_rol
              LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = "activa"
@@ -51,19 +79,7 @@ class AuthModel
         }
 
         $stmt = $this->db->prepare(
-            'SELECT u.id_usuario,
-                    u.nombre,
-                    u.email,
-                    u.password,
-                    u.estado,
-                    u.id_rol,
-                    u.tema_habilitado,
-                    u.casa_preferida,
-                    u.auth_provider,
-                    u.google_sub,
-                    u.prueba_7d_usada,
-                    r.nombre AS rol_nombre,
-                    p.nombre AS plan_nombre
+            $this->getUserSelectSQL() . '
              FROM usuarios u
              LEFT JOIN roles r ON r.id_rol = u.id_rol
              LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = "activa"
@@ -80,20 +96,7 @@ class AuthModel
     public function findUserById(int $id): ?array
     {
         $stmt = $this->db->prepare(
-            'SELECT u.id_usuario,
-                    u.nombre,
-                    u.email,
-                    u.estado,
-                    u.id_rol,
-                    u.tema_habilitado,
-                    u.casa_preferida,
-                    u.auth_provider,
-                    u.google_sub,
-                    u.prueba_7d_usada,
-                    u.fecha_registro,
-                    r.nombre AS rol_nombre,
-                    s.id_plan AS plan_id,
-                    p.nombre AS plan_nombre
+            $this->getUserSelectSQLWithoutPassword() . '
              FROM usuarios u
              LEFT JOIN roles r ON r.id_rol = u.id_rol
              LEFT JOIN suscripciones s ON s.id_usuario = u.id_usuario AND s.estado = "activa"
@@ -138,11 +141,12 @@ class AuthModel
         return $stmt->fetchAll() ?: [];
     }
 
-    public function resolveOrCreateGoogleUser(string $googleSub, string $email, string $name): ?array
+    public function resolveOrCreateGoogleUser(string $googleSub, string $email, string $name, string $picture = ''): ?array
     {
         $googleSub = trim($googleSub);
         $email = trim(strtolower($email));
         $name = trim($name);
+        $picture = trim($picture);
 
         if ($googleSub === '' || $email === '') {
             return null;
@@ -154,39 +158,68 @@ class AuthModel
 
         $existingBySub = $this->findUserByGoogleSub($googleSub);
         if ($existingBySub !== null) {
-            return $existingBySub;
+            // Update picture if provided and column exists
+            if ($picture !== '' && $this->hasPictureColumn) {
+                $stmt = $this->db->prepare(
+                    'UPDATE usuarios
+                     SET google_picture_url = :picture
+                     WHERE id_usuario = :id_usuario'
+                );
+                $stmt->execute([
+                    'picture' => $picture,
+                    'id_usuario' => (int) $existingBySub['id_usuario'],
+                ]);
+            }
+            return $this->findUserById((int) $existingBySub['id_usuario']);
         }
 
         $existingByEmail = $this->findUserByEmail($email);
         if ($existingByEmail !== null) {
             $role = strtolower((string) ($existingByEmail['rol_nombre'] ?? 'usuario'));
             if ($role !== 'admin') {
-                $stmt = $this->db->prepare(
-                    'UPDATE usuarios
-                     SET google_sub = :google_sub,
-                         auth_provider = "google"
-                     WHERE id_usuario = :id_usuario'
-                );
-                $stmt->execute([
+                $updateSQL = 'UPDATE usuarios SET google_sub = :google_sub, auth_provider = "google"';
+                $updateParams = [
                     'google_sub' => $googleSub,
                     'id_usuario' => (int) $existingByEmail['id_usuario'],
-                ]);
+                ];
+
+                if ($picture !== '' && $this->hasPictureColumn) {
+                    $updateSQL .= ', google_picture_url = :picture';
+                    $updateParams['picture'] = $picture;
+                }
+
+                $updateSQL .= ' WHERE id_usuario = :id_usuario';
+
+                $stmt = $this->db->prepare($updateSQL);
+                $stmt->execute($updateParams);
             }
 
             return $this->findUserById((int) $existingByEmail['id_usuario']);
         }
 
-        $stmt = $this->db->prepare(
-            'INSERT INTO usuarios (nombre, email, password, estado, id_rol, auth_provider, google_sub, prueba_7d_usada)
-             VALUES (:nombre, :email, :password, "activo", 2, "google", :google_sub, 0)'
-        );
+        $insertSQL = 'INSERT INTO usuarios (nombre, email, password, estado, id_rol, auth_provider, google_sub';
+        if ($this->hasPictureColumn) {
+            $insertSQL .= ', google_picture_url';
+        }
+        $insertSQL .= ', prueba_7d_usada) VALUES (:nombre, :email, :password, "activo", 2, "google", :google_sub';
+        if ($this->hasPictureColumn) {
+            $insertSQL .= ', :picture';
+        }
+        $insertSQL .= ', 0)';
 
-        $stmt->execute([
+        $stmt = $this->db->prepare($insertSQL);
+        $insertParams = [
             'nombre' => $name,
             'email' => $email,
             'password' => password_hash(bin2hex(random_bytes(32)), PASSWORD_DEFAULT),
             'google_sub' => $googleSub,
-        ]);
+        ];
+
+        if ($this->hasPictureColumn) {
+            $insertParams['picture'] = $picture;
+        }
+
+        $stmt->execute($insertParams);
 
         return $this->findUserById((int) $this->db->lastInsertId());
     }
@@ -373,6 +406,13 @@ class AuthModel
             "INSERT IGNORE INTO planes (id_plan, nombre, precio, descripcion, duracion_dias)
              VALUES (5, 'Prueba 7 dias', 0.00, 'Prueba gratuita por 7 dias con beneficios del plan Basico', 7)"
         );
+    }
+
+    private function ensurePictureColumn(): void
+    {
+        if (!$this->columnExists('usuarios', 'google_picture_url')) {
+            $this->db->exec('ALTER TABLE usuarios ADD COLUMN google_picture_url VARCHAR(255) NULL AFTER google_sub');
+        }
     }
 
     private function getTrialPlanId(): int

@@ -49,7 +49,6 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
 
         .plans-hero {
             border: 1px solid var(--login-border);
-            border-radius: 18px;
             background: rgba(20, 20, 20, 0.94);
             padding: 1.6rem;
             box-shadow: 0 18px 50px rgba(0, 0, 0, 0.34);
@@ -74,7 +73,6 @@ $targetUrl = $loggedUser ? app_url('perfil.php') : app_url('login.php');
 
         .plan-public-card {
             border: 1px solid var(--login-border);
-            border-radius: 16px;
             background: var(--login-card);
             padding: 1rem;
             transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;

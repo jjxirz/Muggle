@@ -89,7 +89,6 @@ a { text-decoration: none; color: inherit; }
     width: 26px;
     height: 26px;
     background: var(--color-white);
-    border-radius: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -341,7 +340,6 @@ body.sidebar-collapsed .admin-footer {
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
-    border-radius: 999px;
     border: 0.5px solid var(--color-gris-pale);
     background: var(--color-crema-light);
     color: var(--color-negro-soft);
@@ -384,7 +382,6 @@ body.modal-open {
     width: min(560px, 100%);
     max-height: min(88vh, 720px);
     overflow: auto;
-    border-radius: 14px;
     background: var(--color-white);
     color: var(--color-negro-soft);
     border: 0.5px solid var(--color-gris-pale);
@@ -419,7 +416,6 @@ body.modal-open {
     width: 34px;
     height: 34px;
     border: 0;
-    border-radius: 50%;
     background: var(--color-crema-light);
     color: var(--color-gris-dark);
     cursor: pointer;
@@ -435,7 +431,6 @@ body.modal-open {
     gap: 12px;
     margin-bottom: 16px;
     padding: 12px 14px;
-    border-radius: 12px;
     background: var(--color-crema-light);
 }
 
@@ -479,7 +474,6 @@ body.modal-open {
     align-items: center;
     gap: 10px;
     padding: 11px 12px;
-    border-radius: 10px;
     background: var(--color-crema-light);
     font-weight: 600;
     color: var(--color-negro-soft);
@@ -496,7 +490,6 @@ body.modal-open {
 .developers-modal-action {
     width: 100%;
     border: 0;
-    border-radius: 10px;
     padding: 0.86rem 1rem;
     background: linear-gradient(135deg, #d4af37 0%, #f7e7a1 50%, #b8860b 100%);
     color: #1f1600;
@@ -525,7 +518,6 @@ body.modal-open {
     align-items: center;
     gap: 6px;
     padding: 7px 14px;
-    border-radius: var(--radius);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -571,7 +563,6 @@ body.modal-open {
 .admin-card {
     background: var(--color-white);
     border: 0.5px solid var(--color-gris-pale);
-    border-radius: var(--radius-lg);
     margin-bottom: 20px;
     overflow: hidden;
 }
@@ -603,7 +594,6 @@ body.modal-open {
 .stat-card {
     background: var(--color-white);
     border: 0.5px solid var(--color-gris-pale);
-    border-radius: var(--radius-lg);
     padding: 14px 16px;
 }
 
@@ -706,7 +696,6 @@ body.modal-open {
     width: 32px;
     height: 40px;
     background: var(--color-crema-mid);
-    border-radius: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -721,7 +710,6 @@ body.modal-open {
 .user-avatar {
     width: 30px;
     height: 30px;
-    border-radius: 50%;
     background: var(--color-crema-mid);
     display: flex;
     align-items: center;
@@ -738,7 +726,6 @@ body.modal-open {
 .badge-plan {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 20px;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.03em;
@@ -752,7 +739,6 @@ body.modal-open {
 .badge-estado {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 20px;
     font-size: 10px;
     font-weight: 600;
 }
@@ -773,7 +759,6 @@ body.modal-open {
 .action-btn {
     width: 28px;
     height: 28px;
-    border-radius: var(--radius);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -806,7 +791,6 @@ body.modal-open {
     gap: 8px;
     background: var(--color-crema-light);
     border: 0.5px solid var(--color-gris-pale);
-    border-radius: var(--radius);
     padding: 6px 12px;
     flex: 1;
     max-width: 300px;
@@ -827,7 +811,6 @@ body.modal-open {
 
 .filter-select {
     border: 0.5px solid var(--color-gris-pale);
-    border-radius: var(--radius);
     padding: 6px 10px;
     font-size: 12px;
     color: var(--color-negro-soft);
@@ -868,14 +851,12 @@ body.modal-open {
     flex: 1;
     height: 10px;
     background: var(--color-crema-mid);
-    border-radius: 20px;
     overflow: hidden;
 }
 
 .bar-fill {
     height: 100%;
     background: var(--color-negro-soft);
-    border-radius: 20px;
     transition: width 0.4s ease;
 }
 
@@ -900,7 +881,6 @@ body.modal-open {
     flex: 1;
     height: 6px;
     background: var(--color-crema-mid);
-    border-radius: 20px;
     overflow: hidden;
     min-width: 80px;
 }
@@ -908,7 +888,6 @@ body.modal-open {
 .progress-fill {
     height: 100%;
     background: var(--color-negro-soft);
-    border-radius: 20px;
 }
 
 .progress-label {
@@ -929,7 +908,6 @@ body.modal-open {
 .plan-dot {
     width: 10px;
     height: 10px;
-    border-radius: 50%;
     flex-shrink: 0;
 }
 

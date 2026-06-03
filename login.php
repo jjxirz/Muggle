@@ -126,8 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
             $googleSub = trim((string) ($payload['sub'] ?? ''));
             $email = trim((string) ($payload['email'] ?? ''));
             $name = trim((string) ($payload['name'] ?? ''));
+            $picture = trim((string) ($payload['picture'] ?? ''));
 
-            $user = $authModel->resolveOrCreateGoogleUser($googleSub, $email, $name);
+            $user = $authModel->resolveOrCreateGoogleUser($googleSub, $email, $name, $picture);
             if ($user === null) {
                 $error_message = 'No se pudo iniciar sesión con Google.';
             } elseif (($user['estado'] ?? '') !== 'activo') {
@@ -171,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
 
         <div class="login-form">
             <h2>Bienvenido de vuelta</h2>
-            <p class="subtitle">Accede con Google. La cuenta admin mantiene acceso por contraseña.</p>
+            <p class="subtitle">Accede con tu cuenta de Google.</p>
 
             <?php if (!empty($error_message)): ?>
                 <div class="alert-error">
@@ -196,26 +197,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
                     data-logo_alignment="left">
                 </div>
             </div>
-
-            <div class="divider">
-                <span>acceso local (solo admin)</span>
-            </div>
-
-            <!-- Formulario manual (demo) -->
-            <form action="login.php" method="POST" class="email-form">
-                <?php echo csrf_input(); ?>
-                <div class="input-group">
-                    <label for="email"><i class="fas fa-envelope"></i> Correo electrónico</label>
-                    <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" value="" required>
-                </div>
-                <div class="input-group">
-                    <label for="password"><i class="fas fa-lock"></i> Contraseña</label>
-                    <input type="password" id="password" name="password" placeholder="Contraseña" value="" required>
-                </div>
-                <button type="submit" name="manual_login" class="btn-login">
-                    <i class="fas fa-sign-in-alt"></i> Iniciar sesión
-                </button>
-            </form>
 
             <div class="signup-link">
                 ¿No tienes cuenta? <a href="planes.php">Conoce los planes</a>
