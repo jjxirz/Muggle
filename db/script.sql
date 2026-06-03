@@ -35,11 +35,15 @@ CREATE TABLE usuarios (
   nombre VARCHAR(100) NOT NULL,
   email VARCHAR(120) NOT NULL UNIQUE,
   password VARCHAR(255) NOT NULL,
+  auth_provider ENUM('local','google') NOT NULL DEFAULT 'local',
+  google_sub VARCHAR(64) NULL,
+  prueba_7d_usada TINYINT(1) NOT NULL DEFAULT 0,
   estado ENUM('activo','inactivo','baneado') NOT NULL DEFAULT 'activo',
   id_rol INT,
   fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   tema_habilitado TINYINT(1) NOT NULL DEFAULT 1,
   casa_preferida VARCHAR(20) NOT NULL DEFAULT 'ravenclaw',
+  UNIQUE KEY uq_usuarios_google_sub (google_sub),
   FOREIGN KEY (id_rol) REFERENCES roles(id_rol)
 ) ENGINE=InnoDB;
 
@@ -191,14 +195,19 @@ INSERT INTO roles (id_rol, nombre, descripcion) VALUES
 -- Admin inicial
 -- email: admin@muggle.local
 -- password: Admin123!
-INSERT INTO usuarios (id_usuario, nombre, email, password, estado, id_rol, tema_habilitado, casa_preferida)
+INSERT INTO usuarios (id_usuario, nombre, email, password, auth_provider, estado, id_rol, tema_habilitado, casa_preferida, prueba_7d_usada)
 VALUES (
   1,
   'Administrador',
   'admin@muggle.local',
   '$2y$12$awD9IIcJMuh/YgEoTpVRKeRzHYCWSgI3muTP70qi20hUoXpLFP3wu',
+  'local',
   'activo',
   1,
   1,
-  'ravenclaw'
+  'ravenclaw',
+  1
 );
+
+INSERT IGNORE INTO planes (id_plan, nombre, precio, descripcion, duracion_dias) VALUES
+  (5, 'Prueba 7 dias', 0.00, 'Prueba gratuita por 7 dias con beneficios similares al plan Basico', 7);

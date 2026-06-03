@@ -17,10 +17,11 @@ class UserModel
     {
         $this->db->exec(
             "INSERT IGNORE INTO planes (id_plan, nombre, precio, descripcion) VALUES
-             (1, 'Free',    0.00,  'Acceso a libros gratuitos'),
+             (1, 'Gratis',  0.00,  'Acceso a libros gratuitos'),
              (2, 'Básico',  4.99,  'Catálogo básico'),
-             (3, 'Plus',    8.99,  'Catálogo ampliado con audiolibros parcial'),
-             (4, 'Premium', 13.99, 'Catálogo completo con audiolibros')"
+             (3, 'Plus',    9.99,  'Catálogo ampliado con audiolibros parcial'),
+             (4, 'Premium', 14.99, 'Catálogo completo con audiolibros'),
+             (5, 'Prueba 7 dias', 0.00, 'Prueba gratuita por 7 dias con beneficios similares al plan Basico')"
         );
     }
 

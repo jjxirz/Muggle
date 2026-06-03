@@ -2,7 +2,8 @@
 
 Aplicación web de biblioteca digital en PHP con:
 
-- Inicio de sesión por usuario/contraseña
+- Inicio de sesión con Google para usuarios
+- Inicio de sesión local solo para administrador
 - Catálogo principal (libros hardcodeados por archivos PDF en `assets/books`)
 - Lector PDF con guardado de progreso
 - Favoritos por usuario
@@ -26,10 +27,12 @@ SOURCE db/script.sql;
 
 - `DB_HOST` (default `127.0.0.1`)
 - `DB_PORT` (default `3306`)
-- `DB_NAME` (default `biblioteca_digital`)
+- `DB_NAME` (default `muggle`)
 - `DB_USER` (default `root`)
-- `DB_PASS` (default vacío)
+- `DB_PASS` (default `almas12`)
 - `APP_BASE_URL` (default `/Muggle`)
+- `GOOGLE_CLIENT_ID` (requerido para login Google)
+- `ADMIN_EMAIL` (default `admin@muggle.local`)
 
 3. Asegurar permisos de escritura en:
 
@@ -39,16 +42,10 @@ SOURCE db/script.sql;
 ## Usuarios de ejemplo
 
 - Administrador
-	- Email: `admin@hogwarts.local`
+	- Email: `admin@muggle.local`
 	- Password: `Admin123!`
 
-- Usuario 1
-	- Email: `harry@hogwarts.local`
-	- Password: `Usuario123!`
-
-- Usuario 2
-	- Email: `hermione@hogwarts.local`
-	- Password: `Lectura123!`
+Los usuarios normales se crean/inician con Google y pueden activar una prueba gratuita de 7 días (una sola vez).
 
 ## Seguridad implementada
 

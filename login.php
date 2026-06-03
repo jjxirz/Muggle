@@ -1,6 +1,11 @@
 <?php
 require_once __DIR__ . '/src/lib/Auth.php';
 
+$googleAutoload = __DIR__ . '/google-api/vendor/autoload.php';
+if (file_exists($googleAutoload)) {
+    require_once $googleAutoload;
+}
+
 if (current_user() !== null) {
     header('Location: ' . app_url('index.php'));
     exit();
@@ -16,9 +21,51 @@ try {
     $error_message = 'No se pudo conectar a la base de datos. Revisa DB_HOST, DB_PORT, DB_NAME, DB_USER y DB_PASS en tu servidor.';
 }
 
-// Configuración de Google OAuth
-// Reemplaza este valor con tu Client ID real de Google Cloud Console.
-$google_client_id = 'TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+$google_client_id = trim((string) (getenv('GOOGLE_CLIENT_ID') ?: '521033287514-narh8epm32v28lbnad8mop5fenk93ppm.apps.googleusercontent.com'));
+$admin_email = trim((string) (getenv('ADMIN_EMAIL') ?: 'admin@muggle.local'));
+$is_google_configured = ($google_client_id !== '');
+
+function google_verify_id_token(string $idToken, string $expectedClientId): ?array
+{
+    $idToken = trim($idToken);
+    if ($idToken === '' || $expectedClientId === '') {
+        return null;
+    }
+
+    $url = 'https://oauth2.googleapis.com/tokeninfo?id_token=' . rawurlencode($idToken);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'timeout' => 10,
+            'header' => "User-Agent: MuggleLogin/1.0\r\n",
+        ],
+    ]);
+
+    $response = @file_get_contents($url, false, $context);
+    if ($response === false) {
+        return null;
+    }
+
+    $payload = json_decode($response, true);
+    if (!is_array($payload)) {
+        return null;
+    }
+
+    if ((string) ($payload['aud'] ?? '') !== $expectedClientId) {
+        return null;
+    }
+
+    if ((string) ($payload['email_verified'] ?? '') !== 'true') {
+        return null;
+    }
+
+    $exp = isset($payload['exp']) ? (int) $payload['exp'] : 0;
+    if ($exp > 0 && $exp < time()) {
+        return null;
+    }
+
+    return $payload;
+}
 
 // URI dinámica para que funcione aunque cambies el nombre de la carpeta local.
 $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
@@ -34,25 +81,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['manual_login'])) {
     $password = $_POST['password'] ?? '';
 
     if ($error_message === '' && $authModel instanceof AuthModel) {
+        if (strtolower($email) !== strtolower($admin_email)) {
+            $error_message = 'Solo la cuenta de administrador puede iniciar con contraseña. El resto usa Google.';
+        }
+
+        if ($error_message !== '') {
+            // noop
+        } else {
         $user = $authModel->findUserByEmail($email);
 
         if ($user !== null && ($user['estado'] ?? '') === 'activo') {
+            $role = strtolower((string) ($user['rol_nombre'] ?? 'usuario'));
+            if ($role !== 'admin') {
+                $error_message = 'Este usuario debe iniciar sesión con Google.';
+            }
+
             $hash = (string) ($user['password'] ?? '');
-            if ($hash !== '' && password_verify($password, $hash)) {
+            if ($error_message === '' && $hash !== '' && password_verify($password, $hash)) {
                 login_user($user);
                 header('Location: ' . app_url('index.php'));
                 exit();
             }
         }
 
-        $error_message = 'Credenciales inválidas o usuario inactivo.';
+        if ($error_message === '') {
+            $error_message = 'Credenciales inválidas o usuario inactivo.';
+        }
+        }
     } elseif ($error_message === '') {
         $error_message = 'No se pudo validar tu usuario por un problema de conexión a base de datos.';
     }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
-    $error_message = 'El inicio de sesión con Google aún no está habilitado en este entorno.';
+    if (!$is_google_configured) {
+        $error_message = 'Google Login aún no está configurado. Define GOOGLE_CLIENT_ID en el servidor.';
+    } elseif (!($authModel instanceof AuthModel)) {
+        $error_message = 'No se pudo validar tu usuario por un problema de conexión a base de datos.';
+    } else {
+        $payload = google_verify_id_token((string) ($_POST['credential'] ?? ''), $google_client_id);
+        if ($payload === null) {
+            $error_message = 'No se pudo validar la sesión de Google.';
+        } else {
+            $googleSub = trim((string) ($payload['sub'] ?? ''));
+            $email = trim((string) ($payload['email'] ?? ''));
+            $name = trim((string) ($payload['name'] ?? ''));
+
+            $user = $authModel->resolveOrCreateGoogleUser($googleSub, $email, $name);
+            if ($user === null) {
+                $error_message = 'No se pudo iniciar sesión con Google.';
+            } elseif (($user['estado'] ?? '') !== 'activo') {
+                $error_message = 'Tu usuario está inactivo.';
+            } else {
+                $role = strtolower((string) ($user['rol_nombre'] ?? 'usuario'));
+                if ($role === 'admin') {
+                    $error_message = 'La cuenta admin usa inicio de sesión local.';
+                } else {
+                    login_user($user);
+                    header('Location: ' . app_url('index.php'));
+                    exit();
+                }
+            }
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -80,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
 
         <div class="login-form">
             <h2>Bienvenido de vuelta</h2>
-            <p class="subtitle">Inicia sesión para continuar leyendo</p>
+            <p class="subtitle">Accede con Google. La cuenta admin mantiene acceso por contraseña.</p>
 
             <?php if (!empty($error_message)): ?>
                 <div class="alert-error">
@@ -107,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['credential'])) {
             </div>
 
             <div class="divider">
-                <span>o continúa con email</span>
+                <span>acceso local (solo admin)</span>
             </div>
 
             <!-- Formulario manual (demo) -->

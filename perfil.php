@@ -41,15 +41,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'manag
     exit();
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activate_trial') {
+    require_valid_csrf();
+
+    $trialSaved = $authModel->activateTrialPlan((int) $authUser['id_usuario']) ? '1' : '0';
+    header('Location: perfil.php?trial_saved=' . $trialSaved);
+    exit();
+}
+
 $freshUser = $authModel->findUserById((int) $authUser['id_usuario']) ?: $authUser;
 $availablePlans = $authModel->getAvailablePlans();
 
+if (!empty($availablePlans)) {
+    $availablePlans = array_values(array_filter(
+        $availablePlans,
+        static function (array $plan): bool {
+            return strtolower(trim((string) ($plan['nombre'] ?? ''))) !== 'prueba 7 dias';
+        }
+    ));
+}
+
 if (empty($availablePlans)) {
     $availablePlans = [
-        ['id_plan' => 1, 'nombre' => 'Free', 'precio' => 0],
+        ['id_plan' => 1, 'nombre' => 'Gratis', 'precio' => 0],
         ['id_plan' => 2, 'nombre' => 'Básico', 'precio' => 4.99],
-        ['id_plan' => 3, 'nombre' => 'Plus', 'precio' => 8.99],
-        ['id_plan' => 4, 'nombre' => 'Premium', 'precio' => 13.99],
+        ['id_plan' => 3, 'nombre' => 'Plus', 'precio' => 9.99],
+        ['id_plan' => 4, 'nombre' => 'Premium', 'precio' => 14.99],
     ];
 }
 
@@ -63,7 +80,7 @@ $user = [
     'name' => (string) ($freshUser['nombre'] ?? ($_SESSION['user_name'] ?? 'Usuario')),
     'email' => (string) ($freshUser['email'] ?? ($_SESSION['user_email'] ?? '')),
     'role' => (string) ($freshUser['rol_nombre'] ?? ($_SESSION['user_role'] ?? 'usuario')),
-    'plan' => (string) ($freshUser['plan_nombre'] ?? ($_SESSION['user_plan'] ?? 'Free')),
+    'plan' => (string) ($freshUser['plan_nombre'] ?? ($_SESSION['user_plan'] ?? 'Gratis')),
     'plan_id' => (int) ($freshUser['plan_id'] ?? 0),
     'member_since' => (string) ($freshUser['fecha_registro'] ?? date('Y-m-d')),
     'theme_enabled' => isset($freshUser['tema_habilitado']) ? (int) $freshUser['tema_habilitado'] === 1 : (bool) ($_SESSION['theme_enabled'] ?? true),
@@ -73,9 +90,9 @@ $user = [
 $role = strtolower($user['role']);
 $is_admin = $role === 'admin' || $role === 'administrador';
 
-$plans = [
-    'Free' => [
-        'name' => 'Free',
+$plansById = [
+    1 => [
+        'name' => 'Gratis',
         'level' => 'Nivel 1',
         'description' => 'Acceso gratuito al catálogo base.',
         'limit' => 'Acceso básico',
@@ -86,7 +103,7 @@ $plans = [
             'Historial de progreso'
         ]
     ],
-    'Básico' => [
+    2 => [
         'name' => 'Básico',
         'level' => 'Nivel 2',
         'description' => 'Más colecciones y mejor experiencia de lectura.',
@@ -98,7 +115,7 @@ $plans = [
             'Preferencias avanzadas'
         ]
     ],
-    'Plus' => [
+    3 => [
         'name' => 'Plus',
         'level' => 'Nivel 2+',
         'description' => 'Más catálogo y mejores opciones de lectura.',
@@ -110,7 +127,7 @@ $plans = [
             'Experiencia mejorada'
         ]
     ],
-    'Premium' => [
+    4 => [
         'name' => 'Premium',
         'level' => 'Nivel 3',
         'description' => 'Acceso completo a todas las funciones de Hogwarts.',
@@ -124,11 +141,48 @@ $plans = [
     ]
 ];
 
-$current_plan = $plans[$user['plan']] ?? $plans['Free'];
+$plansByName = [
+    'gratis' => $plansById[1],
+    'free' => $plansById[1],
+    'basico' => $plansById[2],
+    'básico' => $plansById[2],
+    'plus' => $plansById[3],
+    'premium' => $plansById[4],
+];
+
+$current_plan = null;
+
+if ((int) $user['plan_id'] > 0 && isset($plansById[(int) $user['plan_id']])) {
+    $current_plan = $plansById[(int) $user['plan_id']];
+}
+
+if ($current_plan === null) {
+    $normalizedPlanName = strtolower(trim((string) $user['plan']));
+    $current_plan = $plansByName[$normalizedPlanName] ?? null;
+}
+
+if ($current_plan === null && !empty($availablePlans)) {
+    $firstPlan = $availablePlans[0];
+    $current_plan = [
+        'name' => (string) ($firstPlan['nombre'] ?? 'Plan'),
+        'level' => 'Nivel',
+        'description' => (string) ($firstPlan['descripcion'] ?? 'Plan activo del usuario.'),
+        'limit' => 'Según plan contratado',
+        'progress' => 50,
+        'features' => [
+            'Acceso a contenido según plan',
+        ],
+    ];
+}
+
+if ($current_plan === null) {
+    $current_plan = $plansById[1];
+}
 
 $libraryModel = new LibraryInteractionModel();
 $favorite_books = $libraryModel->getFavoritesByUser((int) $user['id']);
 $saved_books = $libraryModel->getRecentProgressByUser((int) $user['id']);
+$subscription = $authModel->getSubscriptionSnapshot((int) $user['id']);
 
 if (empty($favorite_books)) {
     $favorite_books = [];
@@ -159,6 +213,17 @@ $themeMessage = isset($_GET['saved']) ? 'Preferencias guardadas correctamente.' 
 $planMessage = isset($_GET['plan_saved'])
     ? (($_GET['plan_saved'] === '1') ? 'Plan actualizado correctamente.' : 'No se pudo actualizar el plan.')
     : '';
+$trialMessage = isset($_GET['trial_saved'])
+    ? (($_GET['trial_saved'] === '1') ? 'Prueba de 7 días activada correctamente.' : 'No se pudo activar la prueba gratuita.')
+    : '';
+
+$activeSubscription = $subscription['active'] ?? null;
+$subscriptionStatusText = $activeSubscription !== null
+    ? ucfirst((string) ($activeSubscription['estado'] ?? 'activa'))
+    : 'Sin suscripción activa';
+$subscriptionStart = $activeSubscription['fecha_inicio'] ?? null;
+$subscriptionEnd = $activeSubscription['fecha_fin'] ?? null;
+$canClaimTrial = !$is_admin && (bool) ($subscription['can_claim_trial'] ?? false);
 ?>
 
 <section class="profile-page">
@@ -230,6 +295,10 @@ $planMessage = isset($_GET['plan_saved'])
             <p class="profile-feedback <?php echo isset($_GET['plan_saved']) && $_GET['plan_saved'] === '1' ? 'profile-feedback--ok' : 'profile-feedback--error'; ?>"><?php echo h($planMessage); ?></p>
         <?php endif; ?>
 
+        <?php if ($trialMessage !== ''): ?>
+            <p class="profile-feedback <?php echo isset($_GET['trial_saved']) && $_GET['trial_saved'] === '1' ? 'profile-feedback--ok' : 'profile-feedback--error'; ?>"><?php echo h($trialMessage); ?></p>
+        <?php endif; ?>
+
         <div class="profile-grid">
 
             <aside class="profile-sidebar">
@@ -256,6 +325,21 @@ $planMessage = isset($_GET['plan_saved'])
                         </div>
 
                         <small><?= h($current_plan['limit']); ?></small>
+                    </div>
+
+                    <div class="profile-subscription-meta">
+                        <div>
+                            <span>Estado</span>
+                            <strong><?= h($subscriptionStatusText); ?></strong>
+                        </div>
+                        <div>
+                            <span>Inicio</span>
+                            <strong><?= $subscriptionStart ? h((string) $subscriptionStart) : '-'; ?></strong>
+                        </div>
+                        <div>
+                            <span>Vence</span>
+                            <strong><?= $subscriptionEnd ? h((string) $subscriptionEnd) : '-'; ?></strong>
+                        </div>
                     </div>
 
                     <ul class="plan-features">
@@ -292,6 +376,20 @@ $planMessage = isset($_GET['plan_saved'])
                             </button>
                         </div>
                     </form>
+
+                    <?php if ($canClaimTrial): ?>
+                        <form method="POST" action="perfil.php" class="profile-plan-form profile-trial-form">
+                            <?php echo csrf_input(); ?>
+                            <input type="hidden" name="action" value="activate_trial">
+                            <p class="profile-trial-copy">
+                                Prueba gratis de 7 días disponible (beneficios similares al plan Básico).
+                            </p>
+                            <button type="submit" class="profile-action profile-plan-btn profile-trial-btn">
+                                <i class="fas fa-gift"></i>
+                                Activar prueba de 7 días
+                            </button>
+                        </form>
+                    <?php endif; ?>
                 </div>
 
                 <div class="profile-side-card">

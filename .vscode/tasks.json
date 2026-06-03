@@ -66,6 +66,177 @@
 			"args": [
 				"tmp_logs_diag.php"
 			]
+		},
+		{
+			"label": "check-db-status-now",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_db_status.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-seed-covers-now",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_validate_seed_covers.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-seed-covers-now",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_validate_seed_covers.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "import-db-script",
+			"type": "shell",
+			"command": "/usr/bin/mariadb",
+			"args": [
+				"-uroot",
+				"-palmas12",
+				"<",
+				"db/script.sql"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "import-db-seed",
+			"type": "shell",
+			"command": "/usr/bin/mariadb",
+			"args": [
+				"-uroot",
+				"-palmas12",
+				"muggle",
+				"<",
+				"db/seed_libros.sql"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-db-status-now",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_db_status.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-google-trial-schema",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"require 'src/models/Database.php'; $pdo=Database::getConnection(); $cols=$pdo->query(\"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='usuarios' AND column_name IN ('auth_provider','google_sub','prueba_7d_usada')\")->fetchColumn(); $trial=$pdo->query(\"SELECT COUNT(*) FROM planes WHERE nombre='Prueba 7 dias'\")->fetchColumn(); echo 'AUTH_COLS='.$cols.PHP_EOL; echo 'TRIAL_PLAN='.$trial.PHP_EOL;"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-google-trial-schema",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_schema_check.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "check-composer-bin",
+			"type": "shell",
+			"command": "ls",
+			"args": [
+				"-l",
+				"/usr/bin/composer"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "which-composer",
+			"type": "shell",
+			"command": "which",
+			"args": [
+				"composer"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "download-composer-phar",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"-r",
+				"copy('https://getcomposer.org/composer-stable.phar','/srv/http/Muggle/api/composer.phar'); echo file_exists('/srv/http/Muggle/api/composer.phar') ? 'OK' : 'FAIL';"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "download-composer-phar",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_install_composer.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "download-composer-script-run",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"tmp_install_composer.php"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "install-api-vendor",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"api/composer.phar",
+				"install",
+				"--no-interaction",
+				"--prefer-dist",
+				"-d",
+				"api"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "install-api-vendor-nodev",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"api/composer.phar",
+				"install",
+				"--no-interaction",
+				"--no-dev",
+				"--prefer-dist",
+				"-d",
+				"api"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "install-google-api-vendor",
+			"type": "shell",
+			"command": "php",
+			"args": [
+				"api/composer.phar",
+				"install",
+				"--no-interaction",
+				"--no-dev",
+				"--prefer-dist",
+				"-d",
+				"google-api"
+			],
+			"isBackground": false
 		}
 	]
 }
